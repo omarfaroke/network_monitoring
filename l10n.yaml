@@ -1,0 +1,7 @@
+arb-dir: lib/l10n
+template-arb-file: network_monitoring_en.arb
+output-localization-file: network_monitoring_localizations.dart
+output-class: NetworkMonitoringLocalizations
+nullable-getter: false
+use-escaping: true
+output-dir: lib/generated/l10n

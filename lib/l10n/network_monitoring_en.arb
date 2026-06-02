@@ -1,0 +1,170 @@
+{
+  "@@locale": "en",
+  "networkMonitor": "Network Monitor",
+  "resumeAllRequests": "Resume all requests",
+  "pauseAllRequests": "Pause all requests",
+  "more": "More",
+  "addBreakpoint": "Add Breakpoint",
+  "appliedBreakpoints": "Applied Breakpoints",
+  "devModeOptions": "Dev Mode Options",
+  "clearAll": "Clear All",
+  "clearAllRecordsTitle": "Clear all records?",
+  "clearAllRecordsMessage": "This will remove all captured HTTP requests from the list.",
+  "cancel": "Cancel",
+  "addAction": "Add",
+  "clear": "Clear",
+  "urlCopied": "URL copied",
+  "breakpointRemovedFor": "Breakpoint removed for {path}",
+  "@breakpointRemovedFor": {
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "breakpointAddedFor": "Breakpoint added for {path}",
+  "@breakpointAddedFor": {
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "pausedCount": "{count} paused",
+  "@pausedCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "requestsPaused": "{count} request(s) paused",
+  "@requestsPaused": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "continueAll": "Continue All",
+  "searchHint": "Search by URL, path, or status code...",
+  "filterAll": "ALL",
+  "noHttpRequestsRecorded": "No HTTP requests recorded",
+  "requestsWillAppearWhenActive": "Requests will appear here when monitoring is active",
+  "removeBreakpoint": "Remove breakpoint",
+  "addBreakpointTooltip": "Add breakpoint",
+  "noBreakpointsConfigured": "No breakpoints configured",
+  "allEndpoints": "All Endpoints",
+  "unknown": "Unknown",
+  "viewDetails": "View Details",
+  "removeBreakpointThisEndpoint": "Remove Breakpoint (this endpoint)",
+  "addBreakpointThisEndpoint": "Add Breakpoint (this endpoint)",
+  "addBreakpointCustom": "Add Breakpoint (custom)...",
+  "copyUrl": "Copy URL",
+  "cancelled": "CANCELLED",
+  "allRequestsPausedHint": "All requests are paused. Tap resume to continue sending traffic.",
+  "allEndpointsBreakpointActiveHint": "Breakpoint active for all endpoints. Matching requests will pause.",
+  "target": "Target",
+  "specificEndpoint": "Specific Endpoint",
+  "endpointPatternHint": "e.g. /api/login or /users",
+  "breakOn": "Break On",
+  "bothRequestAndResponse": "Both Request & Response",
+  "requestOnly": "Request Only",
+  "responseOnly": "Response Only",
+  "enableDevMode": "Enable Dev Mode",
+  "enterDevModePassword": "Enter password to enable developer mode",
+  "password": "Password",
+  "enable": "Enable",
+  "incorrectPassword": "Incorrect password",
+  "validationFailed": "Validation failed",
+  "httpMonitoring": "HTTP Monitoring",
+  "httpMonitoringDescription": "Monitor all HTTP requests and responses in real-time. Shows a floating button for quick access.",
+  "monitoringHttp": "Monitoring HTTP",
+  "showFloatingButton": "Show Floating Button",
+  "breakpoints": "Breakpoints",
+  "noBreakpointsConfiguredDevMode": "No breakpoints configured. Add breakpoints from the monitor view.",
+  "disableDevMode": "Disable Dev Mode",
+  "copyRequestHeaders": "Copy Request Headers",
+  "copyRequestBody": "Copy Request Body",
+  "copyResponseBody": "Copy Response Body",
+  "copyAuthToken": "Copy Auth Token",
+  "shareAllDetails": "Share All Details",
+  "copiedToClipboard": "Copied to clipboard",
+  "overview": "Overview",
+  "request": "Request",
+  "response": "Response",
+  "headers": "Headers",
+  "general": "General",
+  "url": "URL",
+  "method": "Method",
+  "status": "Status",
+  "duration": "Duration",
+  "startTime": "Start Time",
+  "endTime": "End Time",
+  "error": "Error",
+  "message": "Message",
+  "authentication": "Authentication",
+  "token": "Token",
+  "jwtHeader": "JWT Header",
+  "jwtPayload": "JWT Payload",
+  "expiresAt": "Expires At",
+  "issuedAt": "Issued At",
+  "copyJwtPayload": "Copy JWT Payload",
+  "jwtDecode": "JWT Decode",
+  "jwtNotJwtHint": "This auth token is not a JWT. Expected Bearer token with header.payload.signature format.",
+  "jwtDecodeFailedHint": "This token looks like a JWT but the header or payload could not be decoded.",
+  "queryParameters": "Query Parameters",
+  "requestBody": "Request Body",
+  "responseBody": "Response Body",
+  "requestHeaders": "Request Headers",
+  "responseHeaders": "Response Headers",
+  "noRequestBody": "No request body",
+  "noResponseBody": "No response body",
+  "noResponseHeaders": "No response headers",
+  "pending": "Pending",
+  "copiedLabel": "Copied {label}",
+  "@copiedLabel": {
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "copiedTitle": "Copied {title}",
+  "@copiedTitle": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "copiedItem": "Copied item [{index}]",
+  "@copiedItem": {
+    "placeholders": {
+      "index": {}
+    }
+  },
+  "copiedKey": "Copied \"{key}\"",
+  "@copiedKey": {
+    "placeholders": {
+      "key": {}
+    }
+  },
+  "copiedKeyBracket": "Copied [{key}]",
+  "@copiedKeyBracket": {
+    "placeholders": {
+      "key": {}
+    }
+  },
+  "editRequest": "Edit Request",
+  "editResponse": "Edit Response",
+  "continueAction": "Continue",
+  "responsePaused": "Response paused",
+  "requestPaused": "Request paused",
+  "editHeadersHint": "Edit headers as JSON...",
+  "editBodyHint": "Edit body content...",
+  "invalidJsonInHeaders": "Invalid JSON in headers",
+  "rawJson": "Raw JSON",
+  "table": "Table",
+  "skipNoEdit": "Skip (No Edit)",
+  "applyAndContinue": "Apply & Continue",
+  "body": "Body",
+  "breakpointTypeAll": "ALL",
+  "breakpointTypeRequest": "REQUEST",
+  "breakpointTypeResponse": "RESPONSE",
+  "requestCancelledByBreakpoint": "Request cancelled by breakpoint",
+  "cancelledByBreakpoint": "Cancelled by breakpoint",
+  "shareApiRequestDetails": "=== API Request Details ===",
+  "shareRequestHeaders": "--- Request Headers ---",
+  "shareRequestBody": "--- Request Body ---",
+  "shareResponseHeaders": "--- Response Headers ---",
+  "shareResponseBody": "--- Response Body ---"
+}
