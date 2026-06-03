@@ -42,7 +42,7 @@ Built for **Dio** and designed to stay out of production UX until you unlock it.
 
 ## Example app
 
-A full **notes** demo lives in `[example/](https://github.com/omarfaroke/network_monitoring/tree/main/example)` (**Android & iOS only**). It runs a local JWT API server (`dart:io`), uses Dio + this package’s interceptor, and includes login, CRUD, search/filter, profile, and dev-mode unlock (6 taps on version, password `123456`).
+A full **notes** demo lives in [example/](https://github.com/omarfaroke/network_monitoring/tree/main/example) (**Android & iOS only**). It runs a local JWT API server (`dart:io`), uses Dio + this package’s interceptor, and includes login, CRUD, search/filter, profile, and dev-mode unlock (6 taps on version, password `123456`).
 
 ```bash
 cd example
@@ -276,27 +276,6 @@ Predefined change groups in `NetworkMonitorChanges`:
 
 
 For custom `StatefulWidget`s, use the `NetworkMonitorControllerListener` mixin (same pattern as the built-in widgets).
-
----
-
-## How it works
-
-```
-┌──────────────────────┐     ┌──────────────────────────┐     ┌─────────────────────┐
-│ VersionTapDetector   │     │ NetworkMonitorController │◀────│ Dio Interceptor     │
-│ or enableDevMode()   │──▶  │ (records, breakpoints)   │     │ (capture traffic)   │
-└──────────────────────┘     └────────────┬─────────────┘     └─────────────────────┘
-                                          │
-                               ┌──────────▼──────────┐
-                               │ Floating overlay    │
-                               │ → NetworkMonitorView│
-                               │ → Detail / Breakpoint│
-                               └─────────────────────┘
-```
-
-1. **Dev mode off** — The interceptor is a no-op; no records are stored and no UI is shown.
-2. **Dev mode on + monitoring enabled** — Every Dio call is recorded. Breakpoints can pause traffic before the request is sent or after the response arrives.
-3. **Breakpoint hit** — You can edit headers/body, continue unchanged, or cancel the request.
 
 ---
 
