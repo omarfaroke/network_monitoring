@@ -42,7 +42,7 @@ Built for **Dio** and designed to stay out of production UX until you unlock it.
 
 ## Example app
 
-A full **notes** demo lives in `[example/](example/)` (**Android & iOS only**). It runs a local JWT API server (`dart:io`), uses Dio + this package’s interceptor, and includes login, CRUD, search/filter, profile, and dev-mode unlock (6 taps on version, password `123456`).
+A full **notes** demo lives in `[example/](https://github.com/omarfaroke/network_monitoring/tree/main/example)` (**Android & iOS only**). It runs a local JWT API server (`dart:io`), uses Dio + this package’s interceptor, and includes login, CRUD, search/filter, profile, and dev-mode unlock (6 taps on version, password `123456`).
 
 ```bash
 cd example
@@ -50,7 +50,7 @@ flutter pub get
 flutter run -d android   # or -d ios
 ```
 
-See [example/README.md](example/README.md) for more.
+See [example/README.md](https://github.com/omarfaroke/network_monitoring/tree/main/example/README.md) for more.
 
 ---
 
