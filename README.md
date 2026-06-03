@@ -1,10 +1,20 @@
+
+<p >
+  <a href="https://pub.dev/packages/network_monitoring"><img src="https://img.shields.io/pub/v/network_monitoring"></a>
+</p>
+
+
 # network_monitoring
 
-Real-time HTTP network monitoring for Flutter apps. Capture Dio traffic, inspect requests and responses, pause traffic with breakpoints, and debug APIs from a floating overlay — all behind a hidden dev mode.
+Simple Package for Real-time HTTP network monitoring for Flutter apps. Capture Dio traffic, inspect requests and responses, pause traffic with breakpoints, and debug APIs from a floating overlay — all behind a hidden dev mode.
 
 Built for **Dio** and designed to stay out of production UX until you unlock it.
 
----
+## Demo
+
+<p>
+<img width="300" height="600" src="https://raw.githubusercontent.com/omarfaroke/network_monitoring/main/example/screenshots/example.gif">
+</p>
 
 ## Features
 
@@ -32,7 +42,7 @@ Built for **Dio** and designed to stay out of production UX until you unlock it.
 
 ## Example app
 
-A full **notes** demo lives in [`example/`](example/) (**Android & iOS only**). It runs a local JWT API server (`dart:io`), uses Dio + this package’s interceptor, and includes login, CRUD, search/filter, profile, and dev-mode unlock (6 taps on version, password `123456`).
+A full **notes** demo lives in `[example/](example/)` (**Android & iOS only**). It runs a local JWT API server (`dart:io`), uses Dio + this package’s interceptor, and includes login, CRUD, search/filter, profile, and dev-mode unlock (6 taps on version, password `123456`).
 
 ```bash
 cd example
@@ -40,7 +50,7 @@ flutter pub get
 flutter run -d android   # or -d ios
 ```
 
-See [example/README.md](example/README.md) for API endpoints and credentials.
+See [example/README.md](example/README.md) for more.
 
 ---
 
@@ -50,10 +60,7 @@ Add the package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  network_monitoring:
-    path: ../network_monitoring   # local path
-    # git:
-    #   url: https://github.com/your-org/network_monitoring.git
+  network_monitoring: ^1.0.0
 ```
 
 Then run:
@@ -182,12 +189,12 @@ From **Dev Mode Options**, toggle HTTP monitoring on. The floating overlay appea
 ## Enabling dev mode (summary)
 
 
-| Approach                            | When to use                                                                        |
-| ----------------------------------- | ---------------------------------------------------------------------------------- |
-| `controller.requestEnableDevMode(context)` | Debug menu or custom unlock; handles password dialog when configured      |
-| `controller.enableDevMode()`        | Skip password dialog (`kDebugMode`, tests, or after your own auth)                 |
-| `VersionTapDetector`                | Hidden gesture on a version label; password dialog handled by the package          |
-| `controller.toggleMonitoring(true)` | Start/stop capture after dev mode is already on (works with either approach above) |
+| Approach                                   | When to use                                                                        |
+| ------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `controller.requestEnableDevMode(context)` | Debug menu or custom unlock; handles password dialog when configured               |
+| `controller.enableDevMode()`               | Skip password dialog (`kDebugMode`, tests, or after your own auth)                 |
+| `VersionTapDetector`                       | Hidden gesture on a version label; password dialog handled by the package          |
+| `controller.toggleMonitoring(true)`        | Start/stop capture after dev mode is already on (works with either approach above) |
 
 
 ---
@@ -309,24 +316,26 @@ Use **Pause all requests** on the monitor screen to hold every in-flight call un
 ## Public API
 
 
-| Export                                           | Purpose                                                     |
-| ------------------------------------------------ | ----------------------------------------------------------- |
-| `NetworkMonitoring`                              | Initialize the package and create the Dio interceptor       |
-| `NetworkMonitoringConfig`                        | Dev-mode and branding configuration                         |
-| `NetworkMonitorOverlayWrapper`                   | Shows/hides the floating overlay via `MaterialApp.builder`  |
-| `VersionTapDetector`                             | Optional secret tap gesture to unlock dev mode              |
+| Export                                           | Purpose                                                                               |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| `NetworkMonitoring`                              | Initialize the package and create the Dio interceptor                                 |
+| `NetworkMonitoringConfig`                        | Dev-mode and branding configuration                                                   |
+| `NetworkMonitorOverlayWrapper`                   | Shows/hides the floating overlay via `MaterialApp.builder`                            |
+| `VersionTapDetector`                             | Optional secret tap gesture to unlock dev mode                                        |
 | `NetworkMonitoring.instance.controller`          | `requestEnableDevMode()`, `enableDevMode()`, `disableDevMode()`, `toggleMonitoring()` |
-| `NetworkMonitoringBuilder`                       | Rebuild on selected controller state changes                |
-| `DevModeOptionsView`                             | Built-in dev settings screen                                |
-| `NetworkMonitorChange` / `NetworkMonitorChanges` | Fine-grained rebuild subscriptions                          |
-| `NetworkMonitoringLocalizations`                 | English / Arabic strings                                    |
-
+| `NetworkMonitoringBuilder`                       | Rebuild on selected controller state changes                                          |
+| `DevModeOptionsView`                             | Built-in dev settings screen                                                          |
+| `NetworkMonitorChange` / `NetworkMonitorChanges` | Fine-grained rebuild subscriptions                                                    |
+| `NetworkMonitoringLocalizations`                 | English / Arabic strings                                                              |
 
 ---
 
 ## Production safety
 
+Note: This package is not intended to be used in production, But if you use it in production, make sure to take this notes into your consideration.
+
 - Keep `validatePasswordInput` set in release builds, or gate initialization behind `kDebugMode`.
+- If you want to use it in production, try to use dynamic password, so you can change the password from the server (or firebase remote config, ...).
 - The overlay and monitor screens are intended for development and QA — do not expose dev mode unlock UI to end users.
 - Use `requestEnableDevMode(context)` for custom unlock UI so the password dialog stays consistent with `VersionTapDetector`.
 - Use `enableDevMode()` only behind `kDebugMode` or when you intentionally skip the dialog.
@@ -344,4 +353,4 @@ void main() {
 
 ## License
 
-See the repository license file for terms of use.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
