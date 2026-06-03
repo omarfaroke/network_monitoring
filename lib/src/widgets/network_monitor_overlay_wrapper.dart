@@ -20,6 +20,8 @@ class NetworkMonitorOverlayWrapper extends StatefulWidget {
 
 class _NetworkMonitorOverlayWrapperState extends State<NetworkMonitorOverlayWrapper>
     with NetworkMonitorControllerListener {
+  bool _syncScheduled = false;
+
   @override
   Set<NetworkMonitorChange> get networkMonitorListenTo =>
       NetworkMonitorChanges.overlay;
@@ -27,14 +29,22 @@ class _NetworkMonitorOverlayWrapperState extends State<NetworkMonitorOverlayWrap
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _syncOverlay();
-    });
+    _scheduleSyncOverlay();
   }
 
   @override
   void onNetworkMonitorChanged() {
-    _syncOverlay();
+    _scheduleSyncOverlay();
+  }
+
+  void _scheduleSyncOverlay() {
+    if (!mounted || _syncScheduled) return;
+    _syncScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncScheduled = false;
+      if (!mounted) return;
+      _syncOverlay();
+    });
   }
 
   void _syncOverlay() {

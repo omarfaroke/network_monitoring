@@ -31,6 +31,7 @@ class NetworkMonitoringBuilder extends StatefulWidget {
 class _NetworkMonitoringBuilderState extends State<NetworkMonitoringBuilder> {
   late final NetworkMonitorController _controller;
   StreamSubscription<void>? _subscription;
+  bool _rebuildScheduled = false;
 
   @override
   void initState() {
@@ -53,7 +54,14 @@ class _NetworkMonitoringBuilderState extends State<NetworkMonitoringBuilder> {
     _subscription = (listenTo == null
             ? _controller.changes.map((_) {})
             : _controller.watchChanges(listenTo))
-        .listen((_) {
+        .listen((_) => _scheduleRebuild());
+  }
+
+  void _scheduleRebuild() {
+    if (!mounted || _rebuildScheduled) return;
+    _rebuildScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _rebuildScheduled = false;
       if (mounted) setState(() {});
     });
   }
@@ -80,6 +88,7 @@ mixin NetworkMonitorControllerListener<T extends StatefulWidget> on State<T> {
       NetworkMonitorChange.values.toSet();
 
   StreamSubscription<void>? _networkMonitorSubscription;
+  bool _rebuildScheduled = false;
 
   @override
   void initState() {
@@ -95,7 +104,17 @@ mixin NetworkMonitorControllerListener<T extends StatefulWidget> on State<T> {
   }
 
   void onNetworkMonitorChanged() {
-    if (mounted) setState(() {});
+    scheduleNetworkMonitorRebuild();
+  }
+
+  /// Schedules [setState] after the current frame to avoid build-phase asserts.
+  void scheduleNetworkMonitorRebuild() {
+    if (!mounted || _rebuildScheduled) return;
+    _rebuildScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _rebuildScheduled = false;
+      if (mounted) setState(() {});
+    });
   }
 
   @override
