@@ -13,7 +13,7 @@ Built for **Dio** and designed to stay out of production UX until you unlock it.
 ## Demo
 
 <p>
-<img width="300" height="600" src="https://raw.githubusercontent.com/omarfaroke/network_monitoring/main/example/screenshots/example.gif">
+<img width="300" height="600" src="https://raw.githubusercontent.com/omarfaroke/network_monitoring/main/screenshots/example.gif">
 </p>
 
 ## Features
