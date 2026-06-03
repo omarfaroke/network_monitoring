@@ -671,12 +671,11 @@ class _HttpRecordCard extends StatelessWidget {
     final isPaused =
         controller.hasActiveBreakpoint(record.id) ||
         controller.hasActiveBreakpoint('res_${record.id}');
+    final accent = isPaused ? Colors.orange : NmTheme.primary(context);
 
-    return GestureDetector(
-      onTap: onTap,
-      onLongPress: onLongPress,
-      child: Container(
-        padding: EdgeInsets.all(12),
+    return Material(
+      color: Colors.transparent,
+      child: Ink(
         decoration: BoxDecoration(
           color: isPaused
               ? Colors.orange.withValues(alpha: 0.05)
@@ -688,61 +687,74 @@ class _HttpRecordCard extends StatelessWidget {
                 : NmTheme.border(context),
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+        child: InkWell(
+          onTap: onTap,
+          onLongPress: onLongPress,
+          borderRadius: BorderRadius.circular(12),
+          splashColor: accent.withValues(alpha: 0.16),
+          highlightColor: accent.withValues(alpha: 0.08),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _MethodBadge(method: record.method),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    record.path,
-                    style: NmTextStyles.medium12(
-                      context,
-                    ).copyWith(color: NmTheme.onSurface(context)),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                Row(
+                  children: [
+                    _MethodBadge(method: record.method),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        record.path,
+                        style: NmTextStyles.medium12(
+                          context,
+                        ).copyWith(color: NmTheme.onSurface(context)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (isPaused) ...[
+                      SizedBox(width: 8),
+                      _PausedActions(
+                        recordId: record.id,
+                        controller: controller,
+                      ),
+                    ] else ...[
+                      _QuickBreakpointButton(
+                        hasBreakpoint: _hasBreakpoint,
+                        onPressed: onToggleBreakpoint,
+                      ),
+                      SizedBox(width: 4),
+                      _StatusBadge(record: record),
+                    ],
+                  ],
                 ),
-                if (isPaused) ...[
-                  SizedBox(width: 8),
-                  _PausedActions(recordId: record.id, controller: controller),
-                ] else ...[
-                  _QuickBreakpointButton(
-                    hasBreakpoint: _hasBreakpoint,
-                    onPressed: onToggleBreakpoint,
-                  ),
-                  SizedBox(width: 4),
-                  _StatusBadge(record: record),
-                ],
+                SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        record.url,
+                        style: NmTextStyles.regular10(
+                          context,
+                        ).copyWith(color: NmTheme.onSurfaceVariant(context)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (record.duration != null) ...[
+                      SizedBox(width: 8),
+                      Text(
+                        record.formattedDuration,
+                        style: NmTextStyles.regular10(
+                          context,
+                        ).copyWith(color: NmTheme.onSurfaceVariant(context)),
+                      ),
+                    ],
+                  ],
+                ),
               ],
             ),
-            SizedBox(height: 6),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    record.url,
-                    style: NmTextStyles.regular10(
-                      context,
-                    ).copyWith(color: NmTheme.onSurfaceVariant(context)),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (record.duration != null) ...[
-                  SizedBox(width: 8),
-                  Text(
-                    record.formattedDuration,
-                    style: NmTextStyles.regular10(
-                      context,
-                    ).copyWith(color: NmTheme.onSurfaceVariant(context)),
-                  ),
-                ],
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
