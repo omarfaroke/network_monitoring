@@ -223,6 +223,27 @@ class NetworkMonitoringLocalizationsAr extends NetworkMonitoringLocalizations {
   String get headers => 'الرؤوس';
 
   @override
+  String get size => 'الحجم';
+
+  @override
+  String get sizeReqHeaders => 'Req headers';
+
+  @override
+  String get sizeReqBody => 'Req body';
+
+  @override
+  String get sizeReqTotal => 'Req total';
+
+  @override
+  String get sizeResHeaders => 'Res headers';
+
+  @override
+  String get sizeResBody => 'Res body';
+
+  @override
+  String get sizeResTotal => 'Res total';
+
+  @override
   String get general => 'عام';
 
   @override

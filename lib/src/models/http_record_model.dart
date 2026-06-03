@@ -1,4 +1,6 @@
 import '../utils/auth_token_utils.dart';
+import '../utils/byte_size_utils.dart';
+import '../utils/http_payload_size_utils.dart';
 import '../utils/jwt_decoder.dart';
 import '../utils/json_format_utils.dart';
 
@@ -54,6 +56,42 @@ class HttpRecordModel {
     }
     return '${(duration!.inMilliseconds / 1000).toStringAsFixed(2)}s';
   }
+
+  int get requestHeadersByteSize =>
+      HttpPayloadSizeUtils.headersByteSize(requestHeaders);
+
+  int get requestBodyByteSize =>
+      HttpPayloadSizeUtils.bodyByteSize(requestBody);
+
+  int get responseHeadersByteSize =>
+      HttpPayloadSizeUtils.headersByteSizeNullable(responseHeaders);
+
+  int get responseBodyByteSize =>
+      HttpPayloadSizeUtils.bodyByteSize(responseBody);
+
+  int get requestPayloadByteSize =>
+      requestHeadersByteSize + requestBodyByteSize;
+
+  int get responsePayloadByteSize =>
+      responseHeadersByteSize + responseBodyByteSize;
+
+  String get formattedRequestHeadersSize =>
+      ByteSizeUtils.format(requestHeadersByteSize);
+
+  String get formattedRequestBodySize =>
+      ByteSizeUtils.format(requestBodyByteSize);
+
+  String get formattedResponseHeadersSize =>
+      ByteSizeUtils.format(responseHeadersByteSize);
+
+  String get formattedResponseBodySize =>
+      ByteSizeUtils.format(responseBodyByteSize);
+
+  String get formattedRequestPayloadSize =>
+      ByteSizeUtils.format(requestPayloadByteSize);
+
+  String get formattedResponsePayloadSize =>
+      ByteSizeUtils.format(responsePayloadByteSize);
 
   String get requestBodyFormatted => JsonFormatUtils.formatBody(requestBody);
 

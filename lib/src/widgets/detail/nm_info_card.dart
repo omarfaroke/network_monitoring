@@ -55,7 +55,7 @@ class NmInfoItemRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 80,
+            width: 100,
             child: Text(
               item.label,
               style: NmTextStyles.medium12(context).copyWith(

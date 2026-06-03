@@ -497,6 +497,48 @@ abstract class NetworkMonitoringLocalizations {
   /// **'Headers'**
   String get headers;
 
+  /// No description provided for @size.
+  ///
+  /// In en, this message translates to:
+  /// **'Size'**
+  String get size;
+
+  /// No description provided for @sizeReqHeaders.
+  ///
+  /// In en, this message translates to:
+  /// **'Req headers'**
+  String get sizeReqHeaders;
+
+  /// No description provided for @sizeReqBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Req body'**
+  String get sizeReqBody;
+
+  /// No description provided for @sizeReqTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Req total'**
+  String get sizeReqTotal;
+
+  /// No description provided for @sizeResHeaders.
+  ///
+  /// In en, this message translates to:
+  /// **'Res headers'**
+  String get sizeResHeaders;
+
+  /// No description provided for @sizeResBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Res body'**
+  String get sizeResBody;
+
+  /// No description provided for @sizeResTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Res total'**
+  String get sizeResTotal;
+
   /// No description provided for @general.
   ///
   /// In en, this message translates to:

@@ -45,6 +45,36 @@ class NetworkMonitorOverviewTab extends StatelessWidget {
                 ),
             ],
           ),
+          const NmDetailGap(),
+          NmInfoCard(
+            title: l10n.size,
+            items: [
+              NmInfoItem(
+                label: l10n.sizeReqHeaders,
+                value: record.formattedRequestHeadersSize,
+              ),
+              NmInfoItem(
+                label: l10n.sizeReqBody,
+                value: record.formattedRequestBodySize,
+              ),
+              NmInfoItem(
+                label: l10n.sizeReqTotal,
+                value: record.formattedRequestPayloadSize,
+              ),
+              NmInfoItem(
+                label: l10n.sizeResHeaders,
+                value: record.formattedResponseHeadersSize,
+              ),
+              NmInfoItem(
+                label: l10n.sizeResBody,
+                value: record.formattedResponseBodySize,
+              ),
+              NmInfoItem(
+                label: l10n.sizeResTotal,
+                value: record.formattedResponsePayloadSize,
+              ),
+            ],
+          ),
           if (record.errorMessage != null) ...[
             const NmDetailGap(),
             NmInfoCard(

@@ -222,6 +222,27 @@ class NetworkMonitoringLocalizationsEn extends NetworkMonitoringLocalizations {
   String get headers => 'Headers';
 
   @override
+  String get size => 'Size';
+
+  @override
+  String get sizeReqHeaders => 'Req headers';
+
+  @override
+  String get sizeReqBody => 'Req body';
+
+  @override
+  String get sizeReqTotal => 'Req total';
+
+  @override
+  String get sizeResHeaders => 'Res headers';
+
+  @override
+  String get sizeResBody => 'Res body';
+
+  @override
+  String get sizeResTotal => 'Res total';
+
+  @override
   String get general => 'General';
 
   @override
