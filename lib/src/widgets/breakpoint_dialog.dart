@@ -78,31 +78,35 @@ class _BreakpointDialogState extends State<BreakpointDialog> {
               ),
             ),
             SizedBox(height: 8),
-            RadioListTile<BreakpointTarget>(
-              value: BreakpointTarget.allEndpoints,
+            RadioGroup<BreakpointTarget>(
               groupValue: _target,
               onChanged: (v) => setState(() => _target = v!),
-              title: Text(
-                l10n.allEndpoints,
-                style: NmTextStyles.medium14(context).copyWith(
-                  color: NmTheme.onSurface(context),
-                ),
+              child: Column(
+                children: [
+                  RadioListTile<BreakpointTarget>(
+                    value: BreakpointTarget.allEndpoints,
+                    title: Text(
+                      l10n.allEndpoints,
+                      style: NmTextStyles.medium14(context).copyWith(
+                        color: NmTheme.onSurface(context),
+                      ),
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                  ),
+                  RadioListTile<BreakpointTarget>(
+                    value: BreakpointTarget.specificEndpoint,
+                    title: Text(
+                      l10n.specificEndpoint,
+                      style: NmTextStyles.medium14(context).copyWith(
+                        color: NmTheme.onSurface(context),
+                      ),
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                  ),
+                ],
               ),
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-            ),
-            RadioListTile<BreakpointTarget>(
-              value: BreakpointTarget.specificEndpoint,
-              groupValue: _target,
-              onChanged: (v) => setState(() => _target = v!),
-              title: Text(
-                l10n.specificEndpoint,
-                style: NmTextStyles.medium14(context).copyWith(
-                  color: NmTheme.onSurface(context),
-                ),
-              ),
-              contentPadding: EdgeInsets.zero,
-              dense: true,
             ),
             if (_target == BreakpointTarget.specificEndpoint) ...[
               SizedBox(height: 8),
@@ -137,44 +141,46 @@ class _BreakpointDialogState extends State<BreakpointDialog> {
               ),
             ),
             SizedBox(height: 8),
-            RadioListTile<BreakpointType>(
-              value: BreakpointType.all,
+            RadioGroup<BreakpointType>(
               groupValue: _type,
               onChanged: (v) => setState(() => _type = v!),
-              title: Text(
-                l10n.bothRequestAndResponse,
-                style: NmTextStyles.medium14(context).copyWith(
-                  color: NmTheme.onSurface(context),
-                ),
+              child: Column(
+                children: [
+                  RadioListTile<BreakpointType>(
+                    value: BreakpointType.all,
+                    title: Text(
+                      l10n.bothRequestAndResponse,
+                      style: NmTextStyles.medium14(context).copyWith(
+                        color: NmTheme.onSurface(context),
+                      ),
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                  ),
+                  RadioListTile<BreakpointType>(
+                    value: BreakpointType.request,
+                    title: Text(
+                      l10n.requestOnly,
+                      style: NmTextStyles.medium14(context).copyWith(
+                        color: NmTheme.onSurface(context),
+                      ),
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                  ),
+                  RadioListTile<BreakpointType>(
+                    value: BreakpointType.response,
+                    title: Text(
+                      l10n.responseOnly,
+                      style: NmTextStyles.medium14(context).copyWith(
+                        color: NmTheme.onSurface(context),
+                      ),
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                  ),
+                ],
               ),
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-            ),
-            RadioListTile<BreakpointType>(
-              value: BreakpointType.request,
-              groupValue: _type,
-              onChanged: (v) => setState(() => _type = v!),
-              title: Text(
-                l10n.requestOnly,
-                style: NmTextStyles.medium14(context).copyWith(
-                  color: NmTheme.onSurface(context),
-                ),
-              ),
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-            ),
-            RadioListTile<BreakpointType>(
-              value: BreakpointType.response,
-              groupValue: _type,
-              onChanged: (v) => setState(() => _type = v!),
-              title: Text(
-                l10n.responseOnly,
-                style: NmTextStyles.medium14(context).copyWith(
-                  color: NmTheme.onSurface(context),
-                ),
-              ),
-              contentPadding: EdgeInsets.zero,
-              dense: true,
             ),
           ],
         ),
