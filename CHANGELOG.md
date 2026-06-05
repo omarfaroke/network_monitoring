@@ -1,9 +1,19 @@
 # Changelog
 
-All notable changes to this project are documented in this file.
+All notable changes to this package are documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [2.0.0] - 2026-06-05
+
+### Changed
+
+- **Breaking:** Share actions now use a required `shareContent` callback on `NetworkMonitoringConfig` instead of a built-in `share_plus` dependency — host apps wire their own share plugin (we avoid depending on third-party packages like [share_plus] or [platform_channels] to keep the package lightweight, and avoid `resolving dependencies` errors in the future.)
+- **Breaking:** `NetworkMonitoring.initialize()` requires an explicit `NetworkMonitoringConfig` (no default config)
+- Declared platform support for Android, iOS, Linux, macOS, and Windows only (web is not supported)
+- Migrated `RadioListTile` usage to `RadioGroup` for Flutter 3.35+ compatibility
+
+### Removed
+
+- **Breaking:** `share_plus` dependency removed from the package
 
 ## [1.0.1] - 2026-06-03
 
@@ -31,5 +41,6 @@ Initial release.
 - English and Arabic localizations
 - Example notes app (`example/`) demonstrating Dio integration, JWT auth, and dev-mode unlock
 
+[2.0.0]: https://github.com/omarfaroke/network_monitoring/releases/tag/v2.0.0
 [1.0.1]: https://github.com/omarfaroke/network_monitoring/releases/tag/v1.0.1
 [1.0.0]: https://github.com/omarfaroke/network_monitoring/releases/tag/v1.0.0
