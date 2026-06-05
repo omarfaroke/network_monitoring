@@ -13,6 +13,12 @@ typedef ShareContent = void Function(BuildContext context, String content);
 
 /// Configuration for the [NetworkMonitoring] package.
 class NetworkMonitoringConfig {
+  /// Whether the package is active.
+  ///
+  /// When `false`, the Dio interceptor, dev mode unlock, overlay, and monitoring
+  /// UI are disabled. Defaults to `true`.
+  final bool enabled;
+
   /// Host-provided handler for sharing text from the monitoring UI.
   ///
   /// We avoid depending on third-party packages like [share_plus] or [platform_channels] to keep the package lightweight,
@@ -47,6 +53,7 @@ class NetworkMonitoringConfig {
 
   const NetworkMonitoringConfig({
     required this.shareContent,
+    this.enabled = true,
     this.validatePasswordInput,
     this.requiredTaps = 6,
     this.tapResetDuration = const Duration(seconds: 3),

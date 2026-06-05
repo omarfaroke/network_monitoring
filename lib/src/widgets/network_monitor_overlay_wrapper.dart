@@ -48,6 +48,13 @@ class _NetworkMonitorOverlayWrapperState extends State<NetworkMonitorOverlayWrap
   }
 
   void _syncOverlay() {
+    if (!NetworkMonitoringRegistry.config.enabled) {
+      if (NetworkMonitorOverlay.isShowing) {
+        NetworkMonitorOverlay.hide();
+      }
+      return;
+    }
+
     final controller = networkMonitorController;
     if (controller.isOverlayVisible && !NetworkMonitorOverlay.isShowing) {
       NetworkMonitorOverlay.show(context);

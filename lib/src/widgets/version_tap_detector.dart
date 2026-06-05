@@ -31,6 +31,8 @@ class _VersionTapDetectorState extends State<VersionTapDetector> {
   }
 
   Future<void> _handleTap() async {
+    if (!NetworkMonitoringRegistry.config.enabled) return;
+
     _tapCount++;
     _resetTimer?.cancel();
     _resetTimer = Timer(_resetDuration, () {

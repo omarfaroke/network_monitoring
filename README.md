@@ -232,13 +232,16 @@ If the delegate is not registered, the package falls back to English strings aut
 
 `NetworkMonitoringConfig` controls dev-mode access, UI branding, and share behavior:
 
-| Property                | Default     | Description                                                                                            |
-| ----------------------- | ----------- | ------------------------------------------------------------------------------------------------------ |
+
+| Property                | Default     | Description                                                                                                                                                                                                                                      |
+| ----------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `enabled`               | `true`      | Master switch; when `false`, monitoring, dev mode, and the overlay are fully disabled                                                                                                                                                            |
 | `shareContent`          | *required*  | Host callback invoked when the user taps share in the monitor UI (we avoid depending on third-party packages like [share_plus] or [platform_channels] to keep the package lightweight, and avoid `resolving dependencies` errors in the future.) |
-| `requiredTaps`          | `6`         | Taps on `VersionTapDetector` needed to unlock dev mode (ignored if you use `enableDevMode()` directly) |
-| `tapResetDuration`      | `3 seconds` | Idle time before the tap counter resets                                                                |
-| `validatePasswordInput` | `null`      | Password validator; when set, a dialog is shown before dev mode unlocks                                |
-| `brandColor`            | `null`      | Accent color for monitoring UI; falls back to `ThemeData.colorScheme.primary`                          |
+| `requiredTaps`          | `6`         | Taps on `VersionTapDetector` needed to unlock dev mode (ignored if you use `enableDevMode()` directly)                                                                                                                                           |
+| `tapResetDuration`      | `3 seconds` | Idle time before the tap counter resets                                                                                                                                                                                                          |
+| `validatePasswordInput` | `null`      | Password validator; when set, a dialog is shown before dev mode unlocks                                                                                                                                                                          |
+| `brandColor`            | `null`      | Accent color for monitoring UI; falls back to `ThemeData.colorScheme.primary`                                                                                                                                                                    |
+
 
 ```dart
 NetworkMonitoringConfig(
@@ -315,13 +318,14 @@ Use **Pause all requests** on the monitor screen to hold every in-flight call un
 | `NetworkMonitorChange` / `NetworkMonitorChanges` | Fine-grained rebuild subscriptions                                                    |
 | `NetworkMonitoringLocalizations`                 | English / Arabic strings                                                              |
 
+
 ---
 
 ## Production safety
 
 Note: This package is not intended to be used in production, But if you use it in production, make sure to take this notes into your consideration.
 
-- Keep `validatePasswordInput` set in release builds, or gate initialization behind `kDebugMode`.
+- Keep `validatePasswordInput` set in release builds, or gate initialization behind `kDebugMode` and `enabled: false`.
 - If you want to use it in production, try to use dynamic password, so you can change the password from the server (or firebase remote config, ...).
 - The overlay and monitor screens are intended for development and QA — do not expose dev mode unlock UI to end users.
 - Use `requestEnableDevMode(context)` for custom unlock UI so the password dialog stays consistent with `VersionTapDetector`.
@@ -329,14 +333,13 @@ Note: This package is not intended to be used in production, But if you use it i
 
 ```dart
 void main() {
-  if (kDebugMode) {
     NetworkMonitoring.initialize(
+      enabled: kDebugMode,
       config: NetworkMonitoringConfig(
         validatePasswordInput: (password) => password == 'dev123',
         // ...
       ),
     );
-  }
   runApp(const MyApp());
 }
 ```

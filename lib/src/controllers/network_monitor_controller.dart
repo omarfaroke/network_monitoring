@@ -88,6 +88,7 @@ class NetworkMonitorController {
   /// Enables dev mode without prompting. Prefer [requestEnableDevMode] when a
   /// password may be required.
   void enableDevMode() {
+    if (!NetworkMonitoringRegistry.config.enabled) return;
     _isDevModeEnabled = true;
     _notify(NetworkMonitorChange.devMode);
   }
@@ -97,6 +98,7 @@ class NetworkMonitorController {
   /// Returns `true` if dev mode was enabled, `false` if already enabled, the
   /// user cancelled, or validation failed.
   Future<bool> requestEnableDevMode(BuildContext context) async {
+    if (!NetworkMonitoringRegistry.config.enabled) return false;
     if (_isDevModeEnabled) return false;
 
     if (NetworkMonitoringRegistry.config.isPasswordRequired) {
@@ -118,6 +120,7 @@ class NetworkMonitorController {
 
   /// Starts or stops HTTP capture. When `true`, also shows the overlay.
   void toggleMonitoring(bool value) {
+    if (!NetworkMonitoringRegistry.config.enabled) return;
     _isMonitoringEnabled = value;
     _isOverlayVisible = value;
     _notifyAll({NetworkMonitorChange.monitoring, NetworkMonitorChange.overlay});
@@ -125,6 +128,7 @@ class NetworkMonitorController {
 
   /// Shows or hides the floating button without changing monitoring state.
   void setOverlayVisible(bool value) {
+    if (!NetworkMonitoringRegistry.config.enabled) return;
     if (_isOverlayVisible == value) return;
     _isOverlayVisible = value;
     _notify(NetworkMonitorChange.overlay);

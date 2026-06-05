@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../controllers/network_monitor_controller.dart';
 import '../l10n/nm_localizations.dart';
 import '../models/http_record_model.dart';
+import '../network_monitoring_registry.dart';
 
 /// Dio interceptor that records traffic and applies breakpoints when monitoring is on.
 ///
@@ -25,7 +26,8 @@ class NetworkMonitorInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    if (!_controller.isMonitoringEnabled) {
+    if (!NetworkMonitoringRegistry.config.enabled ||
+        !_controller.isMonitoringEnabled) {
       handler.next(options);
       return;
     }
@@ -96,7 +98,8 @@ class NetworkMonitorInterceptor extends Interceptor {
     Response response,
     ResponseInterceptorHandler handler,
   ) async {
-    if (!_controller.isMonitoringEnabled) {
+    if (!NetworkMonitoringRegistry.config.enabled ||
+        !_controller.isMonitoringEnabled) {
       handler.next(response);
       return;
     }
@@ -164,7 +167,8 @@ class NetworkMonitorInterceptor extends Interceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    if (!_controller.isMonitoringEnabled) {
+    if (!NetworkMonitoringRegistry.config.enabled ||
+        !_controller.isMonitoringEnabled) {
       handler.next(err);
       return;
     }
