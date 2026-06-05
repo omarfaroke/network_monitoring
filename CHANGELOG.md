@@ -2,6 +2,12 @@
 
 All notable changes to this package are documented in this file.
 
+## [2.1.0] - 2026-06-05
+
+### Added
+
+- `enabled` flag on `NetworkMonitoringConfig` (default `true`) to disable monitoring, dev mode, overlay, and the Dio interceptor in one place — useful for gating the package behind `kDebugMode` or a feature flag
+
 ## [2.0.0] - 2026-06-05
 
 ### Changed
@@ -41,6 +47,7 @@ Initial release.
 - English and Arabic localizations
 - Example notes app (`example/`) demonstrating Dio integration, JWT auth, and dev-mode unlock
 
+[2.1.0]: https://github.com/omarfaroke/network_monitoring/releases/tag/v2.1.0
 [2.0.0]: https://github.com/omarfaroke/network_monitoring/releases/tag/v2.0.0
 [1.0.1]: https://github.com/omarfaroke/network_monitoring/releases/tag/v1.0.1
 [1.0.0]: https://github.com/omarfaroke/network_monitoring/releases/tag/v1.0.0
