@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/nm_localizations.dart';
+import '../../utils/nm_share.dart';
 import '../../theme/nm_theme.dart';
 import '../nm_clipboard.dart';
 import 'nm_json_table.dart';
@@ -77,10 +77,9 @@ class _NmCodeBlockState extends State<NmCodeBlock> {
                       ),
                       const SizedBox(width: 8),
                       _ShareIcon(
-                        onTap: () => SharePlus.instance.share(
-                          ShareParams(
-                            text: '${widget.title}:\n${widget.content}',
-                          ),
+                        onTap: () => nmShareContent(
+                          context,
+                          '${widget.title}:\n${widget.content}',
                         ),
                       ),
                     ],

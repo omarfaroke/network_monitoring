@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:network_monitoring/network_monitoring.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'app.dart';
 import 'config/app_config.dart';
@@ -19,6 +20,9 @@ Future<void> main() async {
 
   NetworkMonitoring.initialize(
     config: NetworkMonitoringConfig(
+      shareContent: (context, content) {
+        SharePlus.instance.share(ShareParams(text: content));
+      },
       requiredTaps: AppConfig.devModeRequiredTaps,
       validatePasswordInput: (password) => password == AppConfig.devModePassword,
       brandColor: Colors.teal,

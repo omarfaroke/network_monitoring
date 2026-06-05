@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/nm_localizations.dart';
 import '../../models/http_record_model.dart';
+import '../../utils/nm_share.dart';
 import '../../widgets/nm_clipboard.dart';
 
 /// Copy and share actions for [NetworkMonitorDetailView].
@@ -11,9 +11,7 @@ abstract final class HttpRecordDetailActions {
 
   static void handleMenuAction(BuildContext context, HttpRecordModel record, String action) {
     if (action == 'share_all') {
-      SharePlus.instance.share(
-        ShareParams(text: buildShareContent(context, record)),
-      );
+      nmShareContent(context, buildShareContent(context, record));
       return;
     }
 

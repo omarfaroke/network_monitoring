@@ -60,7 +60,8 @@ Add the package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  network_monitoring: ^1.0.0
+  network_monitoring: ^1.2.0
+  # share_plus: ^13.1.0   # if you want to use share_plus for sharing text from the monitoring UI
 ```
 
 Then run:
@@ -83,6 +84,10 @@ import 'package:network_monitoring/network_monitoring.dart';
 void main() {
   NetworkMonitoring.initialize(
     config: NetworkMonitoringConfig(
+      shareContent: (context, content) {
+        // SharePlus.instance.share(ShareParams(text: content));
+        // or any other sharing mechanism you prefer
+      },
       requiredTaps: 6,
       validatePasswordInput: (password) => password == 'dev123',
       brandColor: Colors.blue,
@@ -225,19 +230,22 @@ If the delegate is not registered, the package falls back to English strings aut
 
 ## Configuration
 
-`NetworkMonitoringConfig` controls dev-mode access and UI branding:
-
+`NetworkMonitoringConfig` controls dev-mode access, UI branding, and share behavior:
 
 | Property                | Default     | Description                                                                                            |
 | ----------------------- | ----------- | ------------------------------------------------------------------------------------------------------ |
+| `shareContent`          | *required*  | Host callback invoked when the user taps share in the monitor UI (we avoid depending on third-party packages like [share_plus] or [platform_channels] to keep the package lightweight, and avoid `resolving dependencies` errors in the future.) |
 | `requiredTaps`          | `6`         | Taps on `VersionTapDetector` needed to unlock dev mode (ignored if you use `enableDevMode()` directly) |
 | `tapResetDuration`      | `3 seconds` | Idle time before the tap counter resets                                                                |
 | `validatePasswordInput` | `null`      | Password validator; when set, a dialog is shown before dev mode unlocks                                |
 | `brandColor`            | `null`      | Accent color for monitoring UI; falls back to `ThemeData.colorScheme.primary`                          |
 
-
 ```dart
 NetworkMonitoringConfig(
+  shareContent: (context, content) {
+    // SharePlus.instance.share(ShareParams(text: content));
+    // or any other sharing mechanism you prefer
+  },
   requiredTaps: 8,
   tapResetDuration: const Duration(seconds: 5),
   validatePasswordInput: (password) async {
@@ -298,7 +306,7 @@ Use **Pause all requests** on the monitor screen to hold every in-flight call un
 | Export                                           | Purpose                                                                               |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------- |
 | `NetworkMonitoring`                              | Initialize the package and create the Dio interceptor                                 |
-| `NetworkMonitoringConfig`                        | Dev-mode and branding configuration                                                   |
+| `NetworkMonitoringConfig`                        | Dev-mode, branding, and `shareContent` configuration                                  |
 | `NetworkMonitorOverlayWrapper`                   | Shows/hides the floating overlay via `MaterialApp.builder`                            |
 | `VersionTapDetector`                             | Optional secret tap gesture to unlock dev mode                                        |
 | `NetworkMonitoring.instance.controller`          | `requestEnableDevMode()`, `enableDevMode()`, `disableDevMode()`, `toggleMonitoring()` |
@@ -322,7 +330,12 @@ Note: This package is not intended to be used in production, But if you use it i
 ```dart
 void main() {
   if (kDebugMode) {
-    NetworkMonitoring.initialize(config: myDevConfig);
+    NetworkMonitoring.initialize(
+      config: NetworkMonitoringConfig(
+        validatePasswordInput: (password) => password == 'dev123',
+        // ...
+      ),
+    );
   }
   runApp(const MyApp());
 }

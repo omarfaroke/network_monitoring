@@ -41,7 +41,7 @@ class NetworkMonitoring {
 
   /// Initialize the package with the given [config].
   static NetworkMonitoring initialize({
-    NetworkMonitoringConfig config = const NetworkMonitoringConfig(),
+    required NetworkMonitoringConfig config,
   }) {
     _instance?.controller.dispose();
     _instance = NetworkMonitoring._(config);

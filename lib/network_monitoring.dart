@@ -1,17 +1,15 @@
-/// Public API for the [network_monitoring] package.
-///
-/// Host apps typically need:
-/// - [NetworkMonitoring.initialize] and [NetworkMonitoring.createInterceptor]
-///   (add the Dio interceptor last in the chain)
-/// - [NetworkMonitorOverlayWrapper] inside `MaterialApp.builder`
-/// - [VersionTapDetector] on a version label to unlock dev mode (optional;
-///   or call `NetworkMonitoring.instance.controller.requestEnableDevMode(context)`)
-/// - [NetworkMonitoringBuilder] with [NetworkMonitorChanges] for reactive UI
-/// - [DevModeOptionsView] for the dev settings screen
-///
-/// Optional: register [NetworkMonitoringLocalizations.delegate] for Arabic UI.
-library network_monitoring;
-
+// Public API for the network_monitoring package.
+//
+// Host apps typically need:
+// - [NetworkMonitoring.initialize] with [NetworkMonitoringConfig.shareContent]
+//   and [NetworkMonitoring.createInterceptor] (add the Dio interceptor last)
+// - [NetworkMonitorOverlayWrapper] inside `MaterialApp.builder`
+// - [VersionTapDetector] on a version label to unlock dev mode (optional;
+//   or call `NetworkMonitoring.instance.controller.requestEnableDevMode(context)`)
+// - [NetworkMonitoringBuilder] with [NetworkMonitorChanges] for reactive UI
+// - [DevModeOptionsView] for the dev settings screen
+//
+// Optional: register [NetworkMonitoringLocalizations.delegate] for Arabic UI.
 export 'generated/l10n/network_monitoring_localizations.dart';
 export 'src/config/network_monitoring_config.dart';
 export 'src/models/network_monitor_change.dart';

@@ -8,8 +8,28 @@ import 'package:flutter/material.dart';
 /// When `null` on [NetworkMonitoringConfig], dev mode unlocks without a dialog.
 typedef DevModePasswordValidator = FutureOr<bool> Function(String password);
 
+/// Host-provided handler for sharing text from the monitoring UI.
+typedef ShareContent = void Function(BuildContext context, String content);
+
 /// Configuration for the [NetworkMonitoring] package.
 class NetworkMonitoringConfig {
+  /// Host-provided handler for sharing text from the monitoring UI.
+  ///
+  /// We avoid depending on third-party packages like [share_plus] or [platform_channels] to keep the package lightweight,
+  /// and avoid `resolving dependencies` errors in the future.
+  ///
+  /// So, the host app is responsible for providing a handler for sharing text from the monitoring UI.
+  ///
+  /// Example:
+  /// ```dart
+  /// NetworkMonitoringConfig(
+  ///   shareContent: (context, content) {
+  ///     SharePlus.instance.share(ShareParams(text: content));
+  ///   },
+  ///  // ...
+  /// );
+  final ShareContent shareContent;
+
   /// Validates the password entered in the dev mode dialog.
   ///
   /// When `null`, dev mode is enabled after the tap gesture without a prompt.
@@ -26,6 +46,7 @@ class NetworkMonitoringConfig {
   final Color? brandColor;
 
   const NetworkMonitoringConfig({
+    required this.shareContent,
     this.validatePasswordInput,
     this.requiredTaps = 6,
     this.tapResetDuration = const Duration(seconds: 3),
