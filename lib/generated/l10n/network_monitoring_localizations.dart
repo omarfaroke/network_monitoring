@@ -218,8 +218,116 @@ abstract class NetworkMonitoringLocalizations {
   /// No description provided for @searchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search by URL, path, or status code...'**
+  /// **'Search requests...'**
   String get searchHint;
+
+  /// No description provided for @searchScopes.
+  ///
+  /// In en, this message translates to:
+  /// **'Search in'**
+  String get searchScopes;
+
+  /// No description provided for @searchScopeUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'URL'**
+  String get searchScopeUrl;
+
+  /// No description provided for @searchScopeStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get searchScopeStatus;
+
+  /// No description provided for @searchScopeHeaders.
+  ///
+  /// In en, this message translates to:
+  /// **'Headers'**
+  String get searchScopeHeaders;
+
+  /// No description provided for @searchScopeQuery.
+  ///
+  /// In en, this message translates to:
+  /// **'Query'**
+  String get searchScopeQuery;
+
+  /// No description provided for @searchScopeRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Request'**
+  String get searchScopeRequest;
+
+  /// No description provided for @searchScopeResponse.
+  ///
+  /// In en, this message translates to:
+  /// **'Response'**
+  String get searchScopeResponse;
+
+  /// No description provided for @searchScopeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All fields'**
+  String get searchScopeAll;
+
+  /// No description provided for @searchScopeReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get searchScopeReset;
+
+  /// No description provided for @searchScopeCurrentTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Current tab'**
+  String get searchScopeCurrentTab;
+
+  /// No description provided for @searchScopeAllTabs.
+  ///
+  /// In en, this message translates to:
+  /// **'All tabs'**
+  String get searchScopeAllTabs;
+
+  /// No description provided for @searchInDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Search in details'**
+  String get searchInDetails;
+
+  /// No description provided for @searchInDetailsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search in request / response...'**
+  String get searchInDetailsHint;
+
+  /// No description provided for @searchMatchesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} matches'**
+  String searchMatchesCount(int count);
+
+  /// No description provided for @searchMatchOf.
+  ///
+  /// In en, this message translates to:
+  /// **'{current} - {total}'**
+  String searchMatchOf(int current, int total);
+
+  /// No description provided for @searchNoMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No matches'**
+  String get searchNoMatches;
+
+  /// No description provided for @searchPrevious.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous match'**
+  String get searchPrevious;
+
+  /// No description provided for @searchNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next match'**
+  String get searchNext;
 
   /// No description provided for @filterAll.
   ///

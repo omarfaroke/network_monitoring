@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import '../../l10n/nm_localizations.dart';
 import '../../utils/nm_share.dart';
 import '../../theme/nm_theme.dart';
+import '../../views/detail/detail_search_match.dart';
 import '../nm_clipboard.dart';
+import 'nm_highlighted_text.dart';
 import 'nm_json_table.dart';
 
 /// JSON/text block with optional table view, copy, and share actions.
@@ -13,12 +15,18 @@ class NmCodeBlock extends StatefulWidget {
   final String title;
   final String content;
   final bool copyable;
+  final String? searchQuery;
+  final String? searchBlockId;
+  final DetailSearchNavigation? searchNavigation;
 
   const NmCodeBlock({
     super.key,
     required this.title,
     required this.content,
     this.copyable = false,
+    this.searchQuery,
+    this.searchBlockId,
+    this.searchNavigation,
   });
 
   @override
@@ -39,8 +47,18 @@ class _NmCodeBlockState extends State<NmCodeBlock> {
 
   bool get _canShowTable => _parsedContent != null;
 
+  bool get _hasSearch {
+    final query =
+        widget.searchNavigation?.query ?? widget.searchQuery?.trim() ?? '';
+    return query.isNotEmpty;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final showTable = _isTableView && _canShowTable && !_hasSearch;
+    final navigation = widget.searchNavigation;
+    final blockId = widget.searchBlockId;
+
     return Directionality(
       textDirection: TextDirection.ltr,
       child: Container(
@@ -58,14 +76,14 @@ class _NmCodeBlockState extends State<NmCodeBlock> {
               children: [
                 Text(
                   widget.title,
-                  style: NmTextStyles.bold14(context).copyWith(
-                    color: NmTheme.onSurface(context),
-                  ),
+                  style: NmTextStyles.bold14(
+                    context,
+                  ).copyWith(color: NmTheme.onSurface(context)),
                 ),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (_canShowTable) _buildViewToggle(context),
+                    if (_canShowTable && !_hasSearch) _buildViewToggle(context),
                     if (widget.copyable) ...[
                       const SizedBox(width: 8),
                       _CopyIcon(
@@ -88,14 +106,27 @@ class _NmCodeBlockState extends State<NmCodeBlock> {
               ],
             ),
             const SizedBox(height: 8),
-            if (_isTableView && _parsedContent != null)
+            if (showTable)
               _parsedContent is Map<String, dynamic>
                   ? NmJsonKeyValueTable(
                       data: _parsedContent as Map<String, dynamic>,
                     )
                   : NmJsonListTable(data: _parsedContent as List)
             else
-              _RawContent(content: widget.content),
+              _RawContent(
+                content: widget.content,
+                searchQuery: navigation?.query ?? widget.searchQuery,
+                matchIndexOffset: blockId != null && navigation != null
+                    ? navigation.matchIndexOffset(blockId)
+                    : 0,
+                activeGlobalMatchIndex: navigation?.activeGlobalIndex,
+                activeMatchKey:
+                    blockId != null &&
+                        navigation != null &&
+                        navigation.isActiveBlock(blockId)
+                    ? navigation.activeMatchKey
+                    : null,
+              ),
           ],
         ),
       ),
@@ -127,11 +158,28 @@ class _NmCodeBlockState extends State<NmCodeBlock> {
 
 class _RawContent extends StatelessWidget {
   final String content;
+  final String? searchQuery;
+  final int matchIndexOffset;
+  final int? activeGlobalMatchIndex;
+  final GlobalKey? activeMatchKey;
 
-  const _RawContent({required this.content});
+  const _RawContent({
+    required this.content,
+    this.searchQuery,
+    this.matchIndexOffset = 0,
+    this.activeGlobalMatchIndex,
+    this.activeMatchKey,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final query = searchQuery?.trim() ?? '';
+    final style = TextStyle(
+      fontFamily: 'monospace',
+      fontSize: 11,
+      color: NmTheme.onSurface(context),
+    );
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(8),
@@ -139,14 +187,16 @@ class _RawContent extends StatelessWidget {
         color: NmTheme.surface(context),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: SelectableText(
-        content,
-        style: TextStyle(
-          fontFamily: 'monospace',
-          fontSize: 11,
-          color: NmTheme.onSurface(context),
-        ),
-      ),
+      child: query.isEmpty
+          ? SelectableText(content, style: style)
+          : NmHighlightedText(
+              text: content,
+              query: query,
+              style: style,
+              matchIndexOffset: matchIndexOffset,
+              activeGlobalMatchIndex: activeGlobalMatchIndex,
+              activeMatchKey: activeMatchKey,
+            ),
     );
   }
 }

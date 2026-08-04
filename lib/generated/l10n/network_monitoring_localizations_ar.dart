@@ -75,7 +75,65 @@ class NetworkMonitoringLocalizationsAr extends NetworkMonitoringLocalizations {
   String get continueAll => 'متابعة الكل';
 
   @override
-  String get searchHint => 'البحث بالرابط أو المسار أو رمز الحالة...';
+  String get searchHint => 'البحث في الطلبات...';
+
+  @override
+  String get searchScopes => 'البحث في';
+
+  @override
+  String get searchScopeUrl => 'الرابط';
+
+  @override
+  String get searchScopeStatus => 'الحالة';
+
+  @override
+  String get searchScopeHeaders => 'الرؤوس';
+
+  @override
+  String get searchScopeQuery => 'الاستعلام';
+
+  @override
+  String get searchScopeRequest => 'الطلب';
+
+  @override
+  String get searchScopeResponse => 'الاستجابة';
+
+  @override
+  String get searchScopeAll => 'كل الحقول';
+
+  @override
+  String get searchScopeReset => 'إعادة تعيين';
+
+  @override
+  String get searchScopeCurrentTab => 'التبويب الحالي';
+
+  @override
+  String get searchScopeAllTabs => 'كل التبويبات';
+
+  @override
+  String get searchInDetails => 'بحث في التفاصيل';
+
+  @override
+  String get searchInDetailsHint => 'البحث في الطلب / الاستجابة...';
+
+  @override
+  String searchMatchesCount(int count) {
+    return '$count نتيجة';
+  }
+
+  @override
+  String searchMatchOf(int current, int total) {
+    return '$current - $total';
+  }
+
+  @override
+  String get searchNoMatches => 'لا توجد نتائج';
+
+  @override
+  String get searchPrevious => 'المطابقة السابقة';
+
+  @override
+  String get searchNext => 'المطابقة التالية';
 
   @override
   String get filterAll => 'الكل';

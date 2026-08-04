@@ -2,6 +2,21 @@
 
 All notable changes to this package are documented in this file.
 
+## [2.2.0] - 2026-08-04
+
+### Added
+
+- Configurable list search scopes (URL, status, headers, query, request body, response body) via the tune control on the monitor search bar
+- Find-in-page search on the request/response detail view, including:
+  - Match highlighting with prev/next navigation that scrolls to the active match
+  - Automatic tab switching when the next/previous match is on another tab
+  - Carrying the list search query into the detail view when opening a record
+  - Configurable tab search scopes (defaults to the current tab; can search all tabs or any selected tabs)
+
+### Changed
+
+- Overview auth token shows the full value with wrapping instead of truncating with ellipsis
+
 ## [2.1.0] - 2026-06-05
 
 ### Added
@@ -47,6 +62,7 @@ Initial release.
 - English and Arabic localizations
 - Example notes app (`example/`) demonstrating Dio integration, JWT auth, and dev-mode unlock
 
+[2.2.0]: https://github.com/omarfaroke/network_monitoring/releases/tag/v2.2.0
 [2.1.0]: https://github.com/omarfaroke/network_monitoring/releases/tag/v2.1.0
 [2.0.0]: https://github.com/omarfaroke/network_monitoring/releases/tag/v2.0.0
 [1.0.1]: https://github.com/omarfaroke/network_monitoring/releases/tag/v1.0.1

@@ -75,7 +75,65 @@ class NetworkMonitoringLocalizationsEn extends NetworkMonitoringLocalizations {
   String get continueAll => 'Continue All';
 
   @override
-  String get searchHint => 'Search by URL, path, or status code...';
+  String get searchHint => 'Search requests...';
+
+  @override
+  String get searchScopes => 'Search in';
+
+  @override
+  String get searchScopeUrl => 'URL';
+
+  @override
+  String get searchScopeStatus => 'Status';
+
+  @override
+  String get searchScopeHeaders => 'Headers';
+
+  @override
+  String get searchScopeQuery => 'Query';
+
+  @override
+  String get searchScopeRequest => 'Request';
+
+  @override
+  String get searchScopeResponse => 'Response';
+
+  @override
+  String get searchScopeAll => 'All fields';
+
+  @override
+  String get searchScopeReset => 'Reset';
+
+  @override
+  String get searchScopeCurrentTab => 'Current tab';
+
+  @override
+  String get searchScopeAllTabs => 'All tabs';
+
+  @override
+  String get searchInDetails => 'Search in details';
+
+  @override
+  String get searchInDetailsHint => 'Search in request / response...';
+
+  @override
+  String searchMatchesCount(int count) {
+    return '$count matches';
+  }
+
+  @override
+  String searchMatchOf(int current, int total) {
+    return '$current - $total';
+  }
+
+  @override
+  String get searchNoMatches => 'No matches';
+
+  @override
+  String get searchPrevious => 'Previous match';
+
+  @override
+  String get searchNext => 'Next match';
 
   @override
   String get filterAll => 'ALL';

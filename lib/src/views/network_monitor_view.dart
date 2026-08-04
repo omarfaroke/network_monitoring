@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../generated/l10n/network_monitoring_localizations.dart';
 import '../controllers/network_monitor_controller.dart';
 import '../l10n/nm_localizations.dart';
 import '../models/http_record_model.dart';
 import '../models/network_monitor_change.dart';
+import '../models/network_search_scope.dart';
 import '../theme/nm_theme.dart';
 import '../widgets/applied_breakpoints_bottom_sheet.dart';
 import '../widgets/breakpoint_dialog.dart';
@@ -32,6 +34,8 @@ class _NetworkMonitorViewState extends State<NetworkMonitorView>
   late final TextEditingController _searchController;
   String _searchQuery = '';
   String? _selectedMethod;
+  Set<NetworkSearchScope> _searchScopes = {...NetworkSearchScopes.defaults};
+  bool _showSearchScopes = false;
 
   @override
   void initState() {
@@ -45,6 +49,17 @@ class _NetworkMonitorViewState extends State<NetworkMonitorView>
     super.dispose();
   }
 
+  void _toggleSearchScope(NetworkSearchScope scope) {
+    setState(() {
+      if (_searchScopes.contains(scope)) {
+        if (_searchScopes.length == 1) return;
+        _searchScopes = {..._searchScopes}..remove(scope);
+      } else {
+        _searchScopes = {..._searchScopes, scope};
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.nmL10n;
@@ -52,12 +67,14 @@ class _NetworkMonitorViewState extends State<NetworkMonitorView>
     final filteredRecords = controller.filterRecords(
       searchQuery: _searchQuery,
       methodFilter: _selectedMethod,
+      searchScopes: _searchScopes,
     );
 
     return GestureDetector(
       onTap: () {
         FocusManager.instance.primaryFocus?.unfocus();
       },
+      behavior: HitTestBehavior.translucent,
       child: Scaffold(
         backgroundColor: NmTheme.surface(context),
         appBar: AppBar(
@@ -216,6 +233,17 @@ class _NetworkMonitorViewState extends State<NetworkMonitorView>
               selectedMethod: _selectedMethod,
               onMethodChanged: (value) =>
                   setState(() => _selectedMethod = value),
+              searchScopes: _searchScopes,
+              showSearchScopes: _showSearchScopes,
+              onToggleScopesVisibility: () =>
+                  setState(() => _showSearchScopes = !_showSearchScopes),
+              onToggleSearchScope: _toggleSearchScope,
+              onSelectAllScopes: () => setState(
+                () => _searchScopes = {...NetworkSearchScopes.all},
+              ),
+              onResetScopes: () => setState(
+                () => _searchScopes = {...NetworkSearchScopes.defaults},
+              ),
             ),
             if (controller.isPausedGlobally)
               _GlobalPauseHintBar(controller: controller)
@@ -227,6 +255,8 @@ class _NetworkMonitorViewState extends State<NetworkMonitorView>
               child: filteredRecords.isEmpty
                   ? _EmptyState()
                   : ListView.separated(
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
                       padding: EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 8,
@@ -262,9 +292,14 @@ class _NetworkMonitorViewState extends State<NetworkMonitorView>
   }
 
   void _openRecordDetails(BuildContext context, HttpRecordModel record) {
+    final initialSearchQuery = _searchQuery.trim();
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => NetworkMonitorDetailView(record: record),
+        builder: (_) => NetworkMonitorDetailView(
+          record: record,
+          initialSearchQuery:
+              initialSearchQuery.isEmpty ? null : initialSearchQuery,
+        ),
       ),
     );
   }
@@ -468,20 +503,55 @@ class _SearchAndFilterBar extends StatelessWidget {
   final ValueChanged<String> onSearchChanged;
   final String? selectedMethod;
   final ValueChanged<String?> onMethodChanged;
+  final Set<NetworkSearchScope> searchScopes;
+  final bool showSearchScopes;
+  final VoidCallback onToggleScopesVisibility;
+  final ValueChanged<NetworkSearchScope> onToggleSearchScope;
+  final VoidCallback onSelectAllScopes;
+  final VoidCallback onResetScopes;
 
   const _SearchAndFilterBar({
     required this.searchController,
     required this.onSearchChanged,
     required this.selectedMethod,
     required this.onMethodChanged,
+    required this.searchScopes,
+    required this.showSearchScopes,
+    required this.onToggleScopesVisibility,
+    required this.onToggleSearchScope,
+    required this.onSelectAllScopes,
+    required this.onResetScopes,
   });
+
+  String _scopeLabel(
+    NetworkMonitoringLocalizations l10n,
+    NetworkSearchScope scope,
+  ) {
+    switch (scope) {
+      case NetworkSearchScope.url:
+        return l10n.searchScopeUrl;
+      case NetworkSearchScope.status:
+        return l10n.searchScopeStatus;
+      case NetworkSearchScope.headers:
+        return l10n.searchScopeHeaders;
+      case NetworkSearchScope.query:
+        return l10n.searchScopeQuery;
+      case NetworkSearchScope.requestBody:
+        return l10n.searchScopeRequest;
+      case NetworkSearchScope.responseBody:
+        return l10n.searchScopeResponse;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.nmL10n;
+    final scopesActive =
+        searchScopes.length != NetworkSearchScopes.defaults.length ||
+        !searchScopes.containsAll(NetworkSearchScopes.defaults);
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
         children: [
           TextField(
@@ -496,28 +566,79 @@ class _SearchAndFilterBar extends StatelessWidget {
                 context,
               ).copyWith(color: NmTheme.onSurfaceVariant(context)),
               prefixIcon: Icon(Icons.search, color: NmTheme.icon(context)),
-              suffixIcon: searchController.text.isNotEmpty
-                  ? IconButton(
+              suffixIcon: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (searchController.text.isNotEmpty)
+                    IconButton(
                       icon: Icon(Icons.clear, color: NmTheme.icon(context)),
                       onPressed: () {
                         searchController.clear();
                         onSearchChanged('');
                       },
-                    )
-                  : null,
+                    ),
+                  IconButton(
+                    tooltip: l10n.searchScopes,
+                    icon: Icon(
+                      Icons.tune,
+                      color: showSearchScopes || scopesActive
+                          ? NmTheme.primary(context)
+                          : NmTheme.icon(context),
+                    ),
+                    onPressed: onToggleScopesVisibility,
+                  ),
+                ],
+              ),
               filled: true,
               fillColor: NmTheme.fieldBackground(context),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
               ),
-              contentPadding: EdgeInsets.symmetric(
+              contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 12,
               ),
             ),
           ),
-          SizedBox(height: 8),
+          if (showSearchScopes) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                l10n.searchScopes,
+                style: NmTextStyles.medium12(context).copyWith(
+                  color: NmTheme.onSurfaceVariant(context),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final scope in NetworkSearchScope.values)
+                  _MethodChip(
+                    label: _scopeLabel(l10n, scope),
+                    isSelected: searchScopes.contains(scope),
+                    onTap: () => onToggleSearchScope(scope),
+                  ),
+                _MethodChip(
+                  label: l10n.searchScopeAll,
+                  isSelected:
+                      searchScopes.length == NetworkSearchScopes.all.length,
+                  onTap: onSelectAllScopes,
+                  color: NmTheme.primary(context),
+                ),
+                _MethodChip(
+                  label: l10n.searchScopeReset,
+                  isSelected: false,
+                  onTap: onResetScopes,
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 8),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -527,35 +648,35 @@ class _SearchAndFilterBar extends StatelessWidget {
                   isSelected: selectedMethod == null,
                   onTap: () => onMethodChanged(null),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 _MethodChip(
                   label: 'GET',
                   isSelected: selectedMethod == 'GET',
                   onTap: () => onMethodChanged('GET'),
                   color: Colors.blue,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 _MethodChip(
                   label: 'POST',
                   isSelected: selectedMethod == 'POST',
                   onTap: () => onMethodChanged('POST'),
                   color: Colors.green,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 _MethodChip(
                   label: 'PUT',
                   isSelected: selectedMethod == 'PUT',
                   onTap: () => onMethodChanged('PUT'),
                   color: Colors.orange,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 _MethodChip(
                   label: 'PATCH',
                   isSelected: selectedMethod == 'PATCH',
                   onTap: () => onMethodChanged('PATCH'),
                   color: Colors.purple,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 _MethodChip(
                   label: 'DELETE',
                   isSelected: selectedMethod == 'DELETE',

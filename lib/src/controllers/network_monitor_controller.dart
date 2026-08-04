@@ -8,6 +8,8 @@ import '../widgets/dev_mode_password_dialog.dart';
 import '../models/breakpoint_model.dart';
 import '../models/http_record_model.dart';
 import '../models/network_monitor_change.dart';
+import '../models/network_search_scope.dart';
+import '../utils/http_record_search_utils.dart';
 
 /// Central store for captured HTTP traffic, breakpoints, and dev-mode flags.
 ///
@@ -309,19 +311,24 @@ class NetworkMonitorController {
   }
 
   /// Returns [records] matching optional search, method, and status filters.
+  ///
+  /// [searchScopes] controls which fields [searchQuery] is matched against.
+  /// Defaults to URL/path and status code.
   List<HttpRecordModel> filterRecords({
     String? searchQuery,
     String? methodFilter,
     int? statusCodeFilter,
+    Set<NetworkSearchScope> searchScopes = NetworkSearchScopes.defaults,
   }) {
     return _records.where((record) {
       if (searchQuery != null && searchQuery.isNotEmpty) {
-        final query = searchQuery.toLowerCase();
-        final matchesUrl = record.url.toLowerCase().contains(query);
-        final matchesPath = record.path.toLowerCase().contains(query);
-        final matchesStatus =
-            record.statusCode?.toString().contains(query) ?? false;
-        if (!matchesUrl && !matchesPath && !matchesStatus) return false;
+        if (!HttpRecordSearchUtils.matches(
+          record,
+          searchQuery,
+          scopes: searchScopes,
+        )) {
+          return false;
+        }
       }
       if (methodFilter != null && methodFilter.isNotEmpty) {
         if (record.method.toUpperCase() != methodFilter.toUpperCase()) {

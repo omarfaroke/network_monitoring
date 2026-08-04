@@ -39,7 +39,42 @@
     }
   },
   "continueAll": "Continue All",
-  "searchHint": "Search by URL, path, or status code...",
+  "searchHint": "Search requests...",
+  "searchScopes": "Search in",
+  "searchScopeUrl": "URL",
+  "searchScopeStatus": "Status",
+  "searchScopeHeaders": "Headers",
+  "searchScopeQuery": "Query",
+  "searchScopeRequest": "Request",
+  "searchScopeResponse": "Response",
+  "searchScopeAll": "All fields",
+  "searchScopeReset": "Reset",
+  "searchScopeCurrentTab": "Current tab",
+  "searchScopeAllTabs": "All tabs",
+  "searchInDetails": "Search in details",
+  "searchInDetailsHint": "Search in request / response...",
+  "searchMatchesCount": "{count} matches",
+  "@searchMatchesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchMatchOf": "{current} - {total}",
+  "@searchMatchOf": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "searchNoMatches": "No matches",
+  "searchPrevious": "Previous match",
+  "searchNext": "Next match",
   "filterAll": "ALL",
   "noHttpRequestsRecorded": "No HTTP requests recorded",
   "requestsWillAppearWhenActive": "Requests will appear here when monitoring is active",
