@@ -2,6 +2,16 @@
 
 All notable changes to this package are documented in this file.
 
+## [2.3.0] - 2026-08-04
+
+### Added
+
+- Remote monitor: local Dart HTTP server (default port `7382`, falls back to the next free port) that serves a browser UI with the same list, search scopes, method filters, detail tabs, find-in-page, JSON/table views, and JWT decode as the in-app monitor
+- Remote monitor toggle in Dev Mode Options with a clickable URL and copy action
+- Optional `openUrl` and `remoteMonitorPort` on `NetworkMonitoringConfig`
+- `HttpRecordModel.toJson()` for the remote API
+- `NetworkMonitorChange.remoteMonitor` for reactive UI updates
+
 ## [2.2.0] - 2026-08-04
 
 ### Added

@@ -241,6 +241,28 @@ class NetworkMonitoringLocalizationsAr extends NetworkMonitoringLocalizations {
   String get showFloatingButton => 'إظهار الزر العائم';
 
   @override
+  String get remoteMonitor => 'المراقبة عن بُعد';
+
+  @override
+  String get remoteMonitorDescription =>
+      'تشغيل خادم ويب محلي لفتح شاشة مراقبة الشبكة في متصفح جهاز آخر على نفس الشبكة.';
+
+  @override
+  String get remoteMonitorEnabled => 'تفعيل المراقبة عن بُعد';
+
+  @override
+  String get remoteMonitorUrl => 'افتح في المتصفح';
+
+  @override
+  String get remoteMonitorUrlCopied => 'تم نسخ رابط المراقبة عن بُعد';
+
+  @override
+  String get remoteMonitorStarting => 'جاري تشغيل المراقبة عن بُعد…';
+
+  @override
+  String get remoteMonitorFailed => 'تعذر تشغيل المراقبة عن بُعد';
+
+  @override
   String get breakpoints => 'نقاط التوقف';
 
   @override

@@ -26,6 +26,7 @@ Built for **Dio** and designed to stay out of production UX until you unlock it.
 - **JWT decoding** — Automatically decodes `Authorization` / `x-auth-token` headers in the detail view
 - **Copy & share** — Copy URL, headers, body, token, or share the full request dump
 - **Hidden dev mode** — Unlock with `VersionTapDetector`, or enable it yourself from a debug menu / `kDebugMode` gate
+- **Remote monitor** — Local Dart HTTP server with a browser UI (list, search scopes, detail tabs, JSON/table) toggled from Dev Mode Options
 
 ---
 
@@ -230,13 +231,15 @@ If the delegate is not registered, the package falls back to English strings aut
 
 ## Configuration
 
-`NetworkMonitoringConfig` controls dev-mode access, UI branding, and share behavior:
+`NetworkMonitoringConfig` controls dev-mode access, UI branding, share behavior, and remote monitor:
 
 
 | Property                | Default     | Description                                                                                                                                                                                                                                      |
 | ----------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `enabled`               | `true`      | Master switch; when `false`, monitoring, dev mode, and the overlay are fully disabled                                                                                                                                                            |
 | `shareContent`          | *required*  | Host callback invoked when the user taps share in the monitor UI (we avoid depending on third-party packages like [share_plus] or [platform_channels] to keep the package lightweight, and avoid `resolving dependencies` errors in the future.) |
+| `openUrl`               | `null`      | Optional callback to open the remote monitor URL in a browser; when `null`, tapping the URL copies it                                                                                                                                            |
+| `remoteMonitorPort`     | `7382`      | Preferred local port for the remote monitor server (tries the next ports if busy)                                                                                                                                                                |
 | `requiredTaps`          | `6`         | Taps on `VersionTapDetector` needed to unlock dev mode (ignored if you use `enableDevMode()` directly)                                                                                                                                           |
 | `tapResetDuration`      | `3 seconds` | Idle time before the tap counter resets                                                                                                                                                                                                          |
 | `validatePasswordInput` | `null`      | Password validator; when set, a dialog is shown before dev mode unlocks                                                                                                                                                                          |
@@ -249,6 +252,10 @@ NetworkMonitoringConfig(
     // SharePlus.instance.share(ShareParams(text: content));
     // or any other sharing mechanism you prefer
   },
+  openUrl: (url) async {
+    // await launchUrl(Uri.parse(url));
+  },
+  remoteMonitorPort: 7382,
   requiredTaps: 8,
   tapResetDuration: const Duration(seconds: 5),
   validatePasswordInput: (password) async {
@@ -256,6 +263,21 @@ NetworkMonitoringConfig(
   },
   brandColor: AppColor.brandColor,
 )
+```
+
+
+---
+
+## Remote monitor
+
+Enable **Remote Monitor** in **Dev Mode Options** to start a local Dart HTTP server on the device (default port `7382`). Open the shown URL in a browser on any device on the same network.
+
+The web UI mirrors the in-app monitor: request list with method badges, search with configurable scopes, method filters, detail tabs (Overview / Request / Response / Headers), find-in-page, JSON/table views, and JWT decode.
+
+Wire `openUrl` if you want the URL to launch the system browser (otherwise tap copies it):
+
+```dart
+openUrl: (url) => launchUrl(Uri.parse(url)),
 ```
 
 ---

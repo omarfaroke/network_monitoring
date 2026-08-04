@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../models/breakpoint_edit_result.dart';
 import '../network_monitoring_registry.dart';
+import '../remote/remote_monitor_server.dart';
 import '../widgets/dev_mode_password_dialog.dart';
 import '../models/breakpoint_model.dart';
 import '../models/http_record_model.dart';
@@ -25,6 +26,11 @@ class NetworkMonitorController {
   bool _isDevModeEnabled = false;
   bool _isOverlayVisible = false;
   bool _isPausedGlobally = false;
+  bool _isRemoteMonitorEnabled = false;
+  String? _remoteMonitorUrl;
+  String? _remoteMonitorError;
+
+  final RemoteMonitorServer _remoteMonitorServer = RemoteMonitorServer();
 
   final Map<String, Completer<BreakpointEditResult>> _pendingBreakpoints = {};
 
@@ -64,6 +70,15 @@ class NetworkMonitorController {
   /// When `true`, every request/response is held until resumed.
   bool get isPausedGlobally => _isPausedGlobally;
 
+  /// Whether the remote browser monitor HTTP server is running.
+  bool get isRemoteMonitorEnabled => _isRemoteMonitorEnabled;
+
+  /// Browser URL for the remote monitor when running (e.g. `http://192.168.1.10:7382`).
+  String? get remoteMonitorUrl => _remoteMonitorUrl;
+
+  /// Last error from starting the remote monitor server, if any.
+  String? get remoteMonitorError => _remoteMonitorError;
+
   /// Whether an enabled breakpoint targets all endpoints.
   bool get hasEnabledAllEndpointsBreakpoint => _breakpoints.any(
     (bp) => bp.isEnabled && bp.target == BreakpointTarget.allEndpoints,
@@ -84,6 +99,7 @@ class NetworkMonitorController {
 
   /// Releases the change [StreamController]. Invoked when re-initializing the package.
   void dispose() {
+    unawaited(_stopRemoteMonitorInternal());
     _changeController.close();
   }
 
@@ -117,7 +133,46 @@ class NetworkMonitorController {
     _isDevModeEnabled = false;
     _isMonitoringEnabled = false;
     _isOverlayVisible = false;
+    unawaited(_stopRemoteMonitorInternal());
     _notifyAll(NetworkMonitorChanges.devModeOptions);
+  }
+
+  /// Starts or stops the remote browser monitor server.
+  Future<void> toggleRemoteMonitor(bool value) async {
+    if (!NetworkMonitoringRegistry.config.enabled) return;
+    if (value == _isRemoteMonitorEnabled &&
+        (value ? _remoteMonitorUrl != null : true)) {
+      return;
+    }
+
+    if (!value) {
+      await _stopRemoteMonitorInternal();
+      _notify(NetworkMonitorChange.remoteMonitor);
+      return;
+    }
+
+    _remoteMonitorError = null;
+    try {
+      final result = await _remoteMonitorServer.start(
+        controller: this,
+        preferredPort: NetworkMonitoringRegistry.config.remoteMonitorPort,
+      );
+      _isRemoteMonitorEnabled = true;
+      _remoteMonitorUrl = result.url;
+      _remoteMonitorError = null;
+    } catch (e) {
+      _isRemoteMonitorEnabled = false;
+      _remoteMonitorUrl = null;
+      _remoteMonitorError = e.toString();
+    }
+    _notify(NetworkMonitorChange.remoteMonitor);
+  }
+
+  Future<void> _stopRemoteMonitorInternal() async {
+    await _remoteMonitorServer.stop();
+    _isRemoteMonitorEnabled = false;
+    _remoteMonitorUrl = null;
+    _remoteMonitorError = null;
   }
 
   /// Starts or stops HTTP capture. When `true`, also shows the overlay.

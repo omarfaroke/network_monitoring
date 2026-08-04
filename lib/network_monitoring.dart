@@ -7,8 +7,7 @@
 // - [VersionTapDetector] on a version label to unlock dev mode (optional;
 //   or call `NetworkMonitoring.instance.controller.requestEnableDevMode(context)`)
 // - [NetworkMonitoringBuilder] with [NetworkMonitorChanges] for reactive UI
-// - [DevModeOptionsView] for the dev settings screen
-//
+// - [DevModeOptionsView] for the dev settings screen (HTTP monitor + remote monitor)//
 // Optional: register [NetworkMonitoringLocalizations.delegate] for Arabic UI.
 export 'generated/l10n/network_monitoring_localizations.dart';
 export 'src/config/network_monitoring_config.dart';

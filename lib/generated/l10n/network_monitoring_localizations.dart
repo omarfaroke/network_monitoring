@@ -527,6 +527,48 @@ abstract class NetworkMonitoringLocalizations {
   /// **'Show Floating Button'**
   String get showFloatingButton;
 
+  /// No description provided for @remoteMonitor.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote Monitor'**
+  String get remoteMonitor;
+
+  /// No description provided for @remoteMonitorDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a local web server so you can open the network monitor in a browser on another device on the same network.'**
+  String get remoteMonitorDescription;
+
+  /// No description provided for @remoteMonitorEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable remote monitor'**
+  String get remoteMonitorEnabled;
+
+  /// No description provided for @remoteMonitorUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in browser'**
+  String get remoteMonitorUrl;
+
+  /// No description provided for @remoteMonitorUrlCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote monitor URL copied'**
+  String get remoteMonitorUrlCopied;
+
+  /// No description provided for @remoteMonitorStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting remote monitor…'**
+  String get remoteMonitorStarting;
+
+  /// No description provided for @remoteMonitorFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not start remote monitor'**
+  String get remoteMonitorFailed;
+
   /// No description provided for @breakpoints.
   ///
   /// In en, this message translates to:

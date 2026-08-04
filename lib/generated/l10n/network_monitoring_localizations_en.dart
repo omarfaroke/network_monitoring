@@ -240,6 +240,28 @@ class NetworkMonitoringLocalizationsEn extends NetworkMonitoringLocalizations {
   String get showFloatingButton => 'Show Floating Button';
 
   @override
+  String get remoteMonitor => 'Remote Monitor';
+
+  @override
+  String get remoteMonitorDescription =>
+      'Start a local web server so you can open the network monitor in a browser on another device on the same network.';
+
+  @override
+  String get remoteMonitorEnabled => 'Enable remote monitor';
+
+  @override
+  String get remoteMonitorUrl => 'Open in browser';
+
+  @override
+  String get remoteMonitorUrlCopied => 'Remote monitor URL copied';
+
+  @override
+  String get remoteMonitorStarting => 'Starting remote monitor…';
+
+  @override
+  String get remoteMonitorFailed => 'Could not start remote monitor';
+
+  @override
   String get breakpoints => 'Breakpoints';
 
   @override

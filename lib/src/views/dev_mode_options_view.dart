@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../l10n/nm_localizations.dart';
 import '../models/breakpoint_model.dart';
 import '../models/network_monitor_change.dart';
+import '../network_monitoring_registry.dart';
 import '../theme/nm_theme.dart';
 import '../widgets/network_monitor_overlay.dart';
 import '../widgets/network_monitoring_builder.dart';
+import '../widgets/nm_clipboard.dart';
 
-/// Dev mode settings: HTTP monitoring toggle, overlay, and breakpoint summary.
+/// Dev mode settings: HTTP monitoring toggle, overlay, remote monitor, and breakpoints.
 class DevModeOptionsView extends StatefulWidget {
   const DevModeOptionsView({super.key});
 
@@ -24,12 +27,44 @@ class DevModeOptionsView extends StatefulWidget {
 
 class _DevModeOptionsViewState extends State<DevModeOptionsView>
     with NetworkMonitorControllerListener {
+  bool _remoteToggleBusy = false;
+
   @override
   Set<NetworkMonitorChange> get networkMonitorListenTo =>
       NetworkMonitorChanges.devModeOptions;
 
+  Future<void> _onRemoteMonitorChanged(bool value) async {
+    if (_remoteToggleBusy) return;
+    setState(() => _remoteToggleBusy = true);
+    try {
+      await networkMonitorController.toggleRemoteMonitor(value);
+    } finally {
+      if (mounted) setState(() => _remoteToggleBusy = false);
+    }
+  }
+
+  Future<void> _openOrCopyRemoteUrl(String url) async {
+    final openUrl = NetworkMonitoringRegistry.config.openUrl;
+    if (openUrl != null) {
+      await openUrl(url);
+      return;
+    }
+    await Clipboard.setData(ClipboardData(text: url));
+    if (!mounted) return;
+    NmClipboard.showMessage(context, context.nmL10n.remoteMonitorUrlCopied);
+  }
+
+  void _copyRemoteUrl(String url) {
+    NmClipboard.copyText(
+      context,
+      url,
+      message: context.nmL10n.remoteMonitorUrlCopied,
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {    final l10n = context.nmL10n;
+  Widget build(BuildContext context) {
+    final l10n = context.nmL10n;
     final controller = networkMonitorController;
 
     return Scaffold(
@@ -147,6 +182,119 @@ class _DevModeOptionsViewState extends State<DevModeOptionsView>
               ),
             ),
           ],
+          SizedBox(height: 16),
+          Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: NmTheme.fieldBackground(context),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: NmTheme.border(context),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.remoteMonitor,
+                  style: NmTextStyles.bold16(context).copyWith(
+                    color: NmTheme.onSurface(context),
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  l10n.remoteMonitorDescription,
+                  style: NmTextStyles.regular12(context).copyWith(
+                    color: NmTheme.onSurfaceVariant(context),
+                  ),
+                ),
+                SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.remoteMonitorEnabled,
+                        style: NmTextStyles.medium14(context).copyWith(
+                          color: NmTheme.onSurface(context),
+                        ),
+                      ),
+                    ),
+                    if (_remoteToggleBusy)
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: NmTheme.primary(context),
+                        ),
+                      )
+                    else
+                      Switch(
+                        value: controller.isRemoteMonitorEnabled,
+                        onChanged: _onRemoteMonitorChanged,
+                        activeTrackColor:
+                            NmTheme.primary(context).withValues(alpha: 0.5),
+                        activeThumbColor: NmTheme.primary(context),
+                      ),
+                  ],
+                ),
+                if (controller.remoteMonitorError != null) ...[
+                  SizedBox(height: 8),
+                  Text(
+                    '${l10n.remoteMonitorFailed}: ${controller.remoteMonitorError}',
+                    style: NmTextStyles.regular12(context).copyWith(
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
+                if (controller.isRemoteMonitorEnabled &&
+                    controller.remoteMonitorUrl != null) ...[
+                  SizedBox(height: 12),
+                  Text(
+                    l10n.remoteMonitorUrl,
+                    style: NmTextStyles.medium12(context).copyWith(
+                      color: NmTheme.onSurfaceVariant(context),
+                    ),
+                  ),
+                  SizedBox(height: 6),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () =>
+                              _openOrCopyRemoteUrl(controller.remoteMonitorUrl!),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Text(
+                              controller.remoteMonitorUrl!,
+                              style: NmTextStyles.medium14(context).copyWith(
+                                color: NmTheme.primary(context),
+                                decoration: TextDecoration.underline,
+                                decorationColor: NmTheme.primary(context),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: l10n.copyUrl,
+                        onPressed: () =>
+                            _copyRemoteUrl(controller.remoteMonitorUrl!),
+                        icon: Icon(
+                          Icons.copy_rounded,
+                          size: 20,
+                          color: NmTheme.icon(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
           SizedBox(height: 16),
           if (controller.isMonitoringEnabled) ...[
             Container(

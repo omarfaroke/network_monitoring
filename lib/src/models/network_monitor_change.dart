@@ -20,6 +20,9 @@ enum NetworkMonitorChange {
 
   /// [NetworkMonitorController.isPausedGlobally]
   globalPause,
+
+  /// [NetworkMonitorController.isRemoteMonitorEnabled] / remote URL.
+  remoteMonitor,
 }
 
 /// Common subscription groups used by package widgets and host apps.
@@ -54,5 +57,6 @@ abstract final class NetworkMonitorChanges {
     NetworkMonitorChange.monitoring,
     NetworkMonitorChange.overlay,
     NetworkMonitorChange.breakpoints,
+    NetworkMonitorChange.remoteMonitor,
   };
 }

@@ -125,4 +125,66 @@ class HttpRecordModel {
   bool get isError =>
       status == HttpRecordStatus.error ||
       (statusCode != null && statusCode! >= 400);
+
+  /// JSON representation for the remote monitor API / web UI.
+  Map<String, dynamic> toJson() {
+    final jwt = authTokenJwtDecode;
+    return {
+      'id': id,
+      'startTime': startTime.toIso8601String(),
+      'endTime': endTime?.toIso8601String(),
+      'method': method,
+      'url': url,
+      'baseUrl': baseUrl,
+      'path': path,
+      'requestHeaders': _jsonSafe(requestHeaders),
+      'queryParameters': _jsonSafe(queryParameters),
+      'requestBody': _jsonSafe(requestBody),
+      'responseHeaders': _jsonSafe(responseHeaders),
+      'responseBody': _jsonSafe(responseBody),
+      'statusCode': statusCode,
+      'statusMessage': statusMessage,
+      'status': status.name,
+      'errorMessage': errorMessage,
+      'durationMs': duration?.inMilliseconds,
+      'formattedDuration': formattedDuration,
+      'formattedRequestHeadersSize': formattedRequestHeadersSize,
+      'formattedRequestBodySize': formattedRequestBodySize,
+      'formattedRequestPayloadSize': formattedRequestPayloadSize,
+      'formattedResponseHeadersSize': formattedResponseHeadersSize,
+      'formattedResponseBodySize': formattedResponseBodySize,
+      'formattedResponsePayloadSize': formattedResponsePayloadSize,
+      'requestBodyFormatted': requestBodyFormatted,
+      'responseBodyFormatted': responseBodyFormatted,
+      'queryParametersFormatted': queryParametersFormatted,
+      'requestHeadersFormatted': requestHeadersFormatted,
+      'responseHeadersFormatted': responseHeadersFormatted,
+      'authToken': authToken,
+      'jwtStatus': jwt.status.name,
+      if (jwt.isSuccess && jwt.token != null)
+        'jwt': {
+          'header': jwt.token!.header,
+          'payload': jwt.token!.payload,
+          'headerFormatted': jwt.token!.headerFormatted,
+          'payloadFormatted': jwt.token!.payloadFormatted,
+          'expiresAt': jwt.token!.expiresAt?.toIso8601String(),
+          'issuedAt': jwt.token!.issuedAt?.toIso8601String(),
+        },
+    };
+  }
+
+  static dynamic _jsonSafe(dynamic value) {
+    if (value == null || value is num || value is bool || value is String) {
+      return value;
+    }
+    if (value is Map) {
+      return value.map(
+        (key, nested) => MapEntry(key.toString(), _jsonSafe(nested)),
+      );
+    }
+    if (value is Iterable) {
+      return value.map(_jsonSafe).toList();
+    }
+    return value.toString();
+  }
 }
