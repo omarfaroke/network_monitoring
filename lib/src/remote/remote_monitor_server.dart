@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../controllers/network_monitor_controller.dart';
+import '../models/breakpoint_edit_result.dart';
+import '../models/breakpoint_model.dart';
 import '../models/http_record_model.dart';
 import '../models/network_monitor_change.dart';
 import '../models/network_search_scope.dart';
@@ -46,11 +48,7 @@ class RemoteMonitorServer {
     int maxPortAttempts = 21,
   }) async {
     if (_server != null) {
-      return RemoteMonitorStartResult(
-        port: _port!,
-        host: _host!,
-        url: url!,
-      );
+      return RemoteMonitorStartResult(port: _port!, host: _host!, url: url!);
     }
 
     _controller = controller;
@@ -66,18 +64,15 @@ class RemoteMonitorServer {
     _changeSub = controller.changes.listen((change) {
       if (change == NetworkMonitorChange.records ||
           change == NetworkMonitorChange.activeBreakpoints ||
-          change == NetworkMonitorChange.globalPause) {
+          change == NetworkMonitorChange.globalPause ||
+          change == NetworkMonitorChange.breakpoints) {
         _broadcastSse({'type': change.name});
       }
     });
 
     _server!.listen(_handleRequest);
 
-    return RemoteMonitorStartResult(
-      port: _port!,
-      host: _host!,
-      url: url!,
-    );
+    return RemoteMonitorStartResult(port: _port!, host: _host!, url: url!);
   }
 
   Future<void> stop() async {
@@ -157,11 +152,7 @@ class RemoteMonitorServer {
 
     try {
       if (path == '/' || path == '/index.html') {
-        await _text(
-          request,
-          RemoteMonitorWeb.indexHtml,
-          ContentType.html,
-        );
+        await _text(request, RemoteMonitorWeb.indexHtml, ContentType.html);
         return;
       }
       if (path == '/app.css') {
@@ -202,7 +193,11 @@ class RemoteMonitorServer {
           await _json(request, HttpStatus.notFound, {'error': 'Not found'});
           return;
         }
-        await _json(request, HttpStatus.ok, record.toJson());
+        await _json(
+          request,
+          HttpStatus.ok,
+          _detailRecordJson(record, controller),
+        );
         return;
       }
       if (path.startsWith('/api/records/') && request.method == 'DELETE') {
@@ -222,7 +217,99 @@ class RemoteMonitorServer {
           'monitoringEnabled': controller.isMonitoringEnabled,
           'pausedGlobally': controller.isPausedGlobally,
           'url': url,
+          ..._monitorState(controller),
         });
+        return;
+      }
+      if (path == '/api/state' && request.method == 'GET') {
+        await _json(request, HttpStatus.ok, _monitorState(controller));
+        return;
+      }
+      if (path == '/api/pause' && request.method == 'POST') {
+        final body = await _readJson(request);
+        final paused = body['paused'];
+        if (paused is bool) {
+          if (controller.isPausedGlobally != paused) {
+            controller.togglePausedGlobally();
+          }
+        } else {
+          controller.togglePausedGlobally();
+        }
+        await _json(request, HttpStatus.ok, _monitorState(controller));
+        return;
+      }
+      if (path == '/api/breakpoints' && request.method == 'GET') {
+        await _json(request, HttpStatus.ok, {
+          'breakpoints': _breakpointsJson(controller),
+        });
+        return;
+      }
+      if (path == '/api/breakpoints' && request.method == 'POST') {
+        final body = await _readJson(request);
+        controller.addBreakpoint(_breakpointFromJson(body));
+        await _json(request, HttpStatus.ok, {
+          'ok': true,
+          'breakpoints': _breakpointsJson(controller),
+        });
+        return;
+      }
+      if (path == '/api/breakpoints/toggle-endpoint' &&
+          request.method == 'POST') {
+        final body = await _readJson(request);
+        final endpointPath = body['path'] as String?;
+        if (endpointPath == null || endpointPath.isEmpty) {
+          await _json(request, HttpStatus.badRequest, {
+            'error': 'path is required',
+          });
+          return;
+        }
+        controller.toggleBreakpointForEndpoint(endpointPath);
+        await _json(request, HttpStatus.ok, {'ok': true});
+        return;
+      }
+      final breakpointIndexMatch = RegExp(
+        r'^/api/breakpoints/(\d+)$',
+      ).firstMatch(path);
+      if (breakpointIndexMatch != null) {
+        final index = int.parse(breakpointIndexMatch.group(1)!);
+        if (request.method == 'PATCH') {
+          final body = await _readJson(request);
+          final enabled = body['isEnabled'];
+          if (enabled is bool) {
+            controller.toggleBreakpoint(index, enabled);
+          }
+          await _json(request, HttpStatus.ok, {'ok': true});
+          return;
+        }
+        if (request.method == 'DELETE') {
+          controller.removeBreakpoint(index);
+          await _json(request, HttpStatus.ok, {'ok': true});
+          return;
+        }
+      }
+      if (path == '/api/active-breakpoints/continue-all' &&
+          request.method == 'POST') {
+        controller.continueAllBreakpoints();
+        await _json(request, HttpStatus.ok, {'ok': true});
+        return;
+      }
+      final continueMatch = RegExp(
+        r'^/api/active-breakpoints/([^/]+)/continue$',
+      ).firstMatch(path);
+      if (continueMatch != null && request.method == 'POST') {
+        final id = Uri.decodeComponent(continueMatch.group(1)!);
+        final body = await _readJson(request);
+        controller.continueBreakpoint(id, result: _editResultFromJson(body));
+        await _json(request, HttpStatus.ok, {'ok': true});
+        return;
+      }
+      final cancelMatch = RegExp(
+        r'^/api/active-breakpoints/([^/]+)/cancel$',
+      ).firstMatch(path);
+      if (cancelMatch != null && request.method == 'POST') {
+        final id = Uri.decodeComponent(cancelMatch.group(1)!);
+        controller.cancelBreakpoint(id);
+        await _json(request, HttpStatus.ok, {'ok': true});
         return;
       }
 
@@ -253,10 +340,136 @@ class RemoteMonitorServer {
     );
 
     await _json(request, HttpStatus.ok, {
-      'records': filtered.map((r) => r.toJson()).toList(),
+      'records': [
+        for (final record in filtered) _listRecordJson(record, controller),
+      ],
       'total': controller.records.length,
       'filtered': filtered.length,
+      ..._monitorState(controller),
     });
+  }
+
+  Map<String, dynamic> _monitorState(NetworkMonitorController controller) {
+    return {
+      'pausedGlobally': controller.isPausedGlobally,
+      'activeBreakpointCount': controller.activeBreakpointCount,
+      'hasEnabledAllEndpointsBreakpoint':
+          controller.hasEnabledAllEndpointsBreakpoint,
+      'monitoringEnabled': controller.isMonitoringEnabled,
+      'breakpoints': _breakpointsJson(controller),
+    };
+  }
+
+  List<Map<String, dynamic>> _breakpointsJson(
+    NetworkMonitorController controller,
+  ) {
+    return [
+      for (var i = 0; i < controller.breakpoints.length; i++)
+        {
+          ...controller.breakpoints[i].toJson(index: i),
+          'typeLabel': _breakpointTypeLabel(controller.breakpoints[i].type),
+        },
+    ];
+  }
+
+  String _breakpointTypeLabel(BreakpointType type) {
+    return switch (type) {
+      BreakpointType.all => 'Both Request & Response',
+      BreakpointType.request => 'Request Only',
+      BreakpointType.response => 'Response Only',
+    };
+  }
+
+  Map<String, dynamic> _listRecordJson(
+    HttpRecordModel record,
+    NetworkMonitorController controller,
+  ) {
+    return {
+      'id': record.id,
+      'method': record.method,
+      'url': record.url,
+      'path': record.path,
+      'status': record.status.name,
+      'statusCode': record.statusCode,
+      'formattedDuration': record.formattedDuration,
+      ..._recordBreakpointFields(record, controller),
+    };
+  }
+
+  Map<String, dynamic> _detailRecordJson(
+    HttpRecordModel record,
+    NetworkMonitorController controller,
+  ) {
+    return {...record.toJson(), ..._recordBreakpointFields(record, controller)};
+  }
+
+  Map<String, dynamic> _recordBreakpointFields(
+    HttpRecordModel record,
+    NetworkMonitorController controller,
+  ) {
+    final responseId = 'res_${record.id}';
+    final pausedId = controller.hasActiveBreakpoint(record.id)
+        ? record.id
+        : (controller.hasActiveBreakpoint(responseId) ? responseId : null);
+    return {
+      'hasBreakpoint': controller.hasBreakpointForEndpoint(record.path),
+      'isPaused': pausedId != null,
+      'pausedBreakpointId': pausedId,
+      'isResponseBreakpoint': pausedId != null && pausedId.startsWith('res_'),
+    };
+  }
+
+  BreakpointModel _breakpointFromJson(Map<String, dynamic> body) {
+    final target =
+        _enumByName(BreakpointTarget.values, body['target']) ??
+        BreakpointTarget.allEndpoints;
+    final type =
+        _enumByName(BreakpointType.values, body['type']) ?? BreakpointType.all;
+    final pattern = body['endpointPattern'] as String?;
+    return BreakpointModel(
+      target: target,
+      type: type,
+      endpointPattern: target == BreakpointTarget.specificEndpoint
+          ? pattern
+          : null,
+    );
+  }
+
+  BreakpointEditResult _editResultFromJson(Map<String, dynamic> body) {
+    final headers = _asStringKeyedMap(body['editedHeaders']);
+    final editedBody = body['editedBody'] as String?;
+    if (headers == null && (editedBody == null || editedBody.isEmpty)) {
+      return const BreakpointEditResult.continueUnmodified();
+    }
+    return BreakpointEditResult(
+      action: BreakpointAction.continueRequest,
+      editedHeaders: headers,
+      editedBody: editedBody,
+    );
+  }
+
+  Map<String, dynamic>? _asStringKeyedMap(dynamic value) {
+    if (value is! Map) return null;
+    return value.map((key, nested) => MapEntry(key.toString(), nested));
+  }
+
+  T? _enumByName<T extends Enum>(List<T> values, Object? name) {
+    if (name is! String) return null;
+    for (final value in values) {
+      if (value.name == name) return value;
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>> _readJson(HttpRequest request) async {
+    try {
+      final raw = await utf8.decoder.bind(request).join();
+      if (raw.trim().isEmpty) return <String, dynamic>{};
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) return decoded;
+      if (decoded is Map) return Map<String, dynamic>.from(decoded);
+    } catch (_) {}
+    return <String, dynamic>{};
   }
 
   Set<NetworkSearchScope> _parseScopes(String? raw) {
@@ -312,15 +525,11 @@ class RemoteMonitorServer {
   void _addCors(HttpRequest request) {
     request.response.headers
       ..set('Access-Control-Allow-Origin', '*')
-      ..set('Access-Control-Allow-Methods', 'GET, DELETE, OPTIONS')
+      ..set('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS')
       ..set('Access-Control-Allow-Headers', 'Content-Type');
   }
 
-  Future<void> _json(
-    HttpRequest request,
-    int status,
-    Object body,
-  ) async {
+  Future<void> _json(HttpRequest request, int status, Object body) async {
     request.response
       ..statusCode = status
       ..headers.contentType = ContentType.json
@@ -328,11 +537,7 @@ class RemoteMonitorServer {
     await request.response.close();
   }
 
-  Future<void> _text(
-    HttpRequest request,
-    String body,
-    ContentType type,
-  ) async {
+  Future<void> _text(HttpRequest request, String body, ContentType type) async {
     request.response
       ..statusCode = HttpStatus.ok
       ..headers.contentType = type

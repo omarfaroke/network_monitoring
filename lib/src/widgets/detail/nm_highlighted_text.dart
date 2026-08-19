@@ -100,8 +100,7 @@ class NmHighlightedText extends StatelessWidget {
     required GlobalKey? activeMatchKey,
     required bool wrapAnywhere,
   }) {
-    String display(String value) =>
-        wrapAnywhere ? _wrapAnywhere(value) : value;
+    String display(String value) => wrapAnywhere ? _wrapAnywhere(value) : value;
 
     final normalizedQuery = query.trim();
     if (normalizedQuery.isEmpty || text.isEmpty) {
