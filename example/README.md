@@ -28,7 +28,7 @@ The example wires the package in six places. Every API call (login, notes CRUD, 
 
 1. **Startup** — `main.dart` initializes the package; `ApiClient` registers the interceptor.
 2. **Unlock dev mode** — Tap the version label on login or profile 6×, enter `123456`.
-3. **Enable capture** — Open **Network Dev Mode** (profile tile or notes app bar icon) → turn on **HTTP monitoring**.
+3. **Enable capture** — Open **Network Dev Mode** (profile tile or notes app bar icon) → turn on **HTTP monitoring**. Optionally turn on **Remote Monitor** and open the shown URL in a browser on the same network.
 4. **Use the app** — Sign in, list/create/edit/delete notes; each call appears in the overlay (JWT visible on login and authenticated routes).
 
 Dependency: [`pubspec.yaml`](pubspec.yaml) uses `network_monitoring` via `path: ../`.
@@ -49,6 +49,12 @@ dependencies:
 ```dart
 NetworkMonitoring.initialize(
   config: NetworkMonitoringConfig(
+    shareContent: (context, content) {
+      SharePlus.instance.share(ShareParams(text: content));
+    },
+    openUrl: (url) async {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    },
     requiredTaps: AppConfig.devModeRequiredTaps,
     validatePasswordInput: (password) => password == AppConfig.devModePassword,
     brandColor: Colors.teal,

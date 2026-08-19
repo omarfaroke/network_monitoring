@@ -1,5 +1,5 @@
 
-<p >
+<p>
   <a href="https://pub.dev/packages/network_monitoring"><img src="https://img.shields.io/pub/v/network_monitoring"></a>
 </p>
 
@@ -26,7 +26,7 @@ Built for **Dio** and designed to stay out of production UX until you unlock it.
 - **JWT decoding** — Automatically decodes `Authorization` / `x-auth-token` headers in the detail view
 - **Copy & share** — Copy URL, headers, body, token, or share the full request dump
 - **Hidden dev mode** — Unlock with `VersionTapDetector`, or enable it yourself from a debug menu / `kDebugMode` gate
-- **Remote monitor** — Local Dart HTTP server with a browser UI (list, search scopes, detail tabs, JSON/table) toggled from Dev Mode Options
+- **Remote monitor** — Local Dart HTTP server with a browser UI (split list/details, breakpoints, live WebSocket updates) toggled from Dev Mode Options
 
 ---
 
@@ -61,7 +61,7 @@ Add the package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  network_monitoring: ^2.2.0
+  network_monitoring: ^2.3.0
   # share_plus: ^13.1.0   # if you want to use share_plus for sharing text from the monitoring UI
 ```
 
@@ -270,16 +270,25 @@ NetworkMonitoringConfig(
 
 ## Remote monitor
 
-Enable **Remote Monitor** in **Dev Mode Options** to start a local Dart HTTP server on the device (default port `7382`). Open the shown URL in a browser on any device on the same network.
+Enable **Remote Monitor** in **Dev Mode Options** to start a local Dart HTTP server on the device (default port `7382`; the next free port is used if it is busy). Open the shown URL (for example `http://192.168.1.10:7382`) in a browser on any device on the **same Wi‑Fi / LAN**.
 
-The web UI mirrors the in-app monitor: request list with method badges, search with configurable scopes, method filters, detail tabs (Overview / Request / Response / Headers), find-in-page, JSON/table views, and JWT decode.
+The web UI is a split view: request list on the left, details on the right (stacked on narrow screens). It tracks the in-app monitor:
 
-Wire `openUrl` if you want the URL to launch the system browser (otherwise tap copies it):
+- Request list with method badges, search scopes, method filters, and live updates
+- Detail tabs (Overview / Request / Response / Headers), find-in-page, JSON/table views, and JWT decode
+- Breakpoints: add/toggle rules, pause/edit/continue/cancel, global pause, and applied-breakpoints panel
+- Copy actions (including on plain `http://` LAN URLs, where the Clipboard API is unavailable)
+- Keyboard: **↑ / ↓** (and Home / End) move through the list, **Enter** opens a request, **← / →** switch detail tabs. The last detail tab is kept when you select another request
+
+Live updates use a **WebSocket** (`/ws`) from the phone, with Server-Sent Events as a fallback.
+
+Wire `openUrl` if you want the URL in Dev Mode Options to launch the system browser (otherwise tap copies it):
 
 ```dart
 openUrl: (url) => launchUrl(Uri.parse(url)),
 ```
 
+The remote server has **no authentication**. Only enable it on a trusted network, and turn it off when you are done.
 ---
 
 ## Reactive UI
@@ -331,10 +340,10 @@ Use **Pause all requests** on the monitor screen to hold every in-flight call un
 | Export                                           | Purpose                                                                               |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------- |
 | `NetworkMonitoring`                              | Initialize the package and create the Dio interceptor                                 |
-| `NetworkMonitoringConfig`                        | Dev-mode, branding, and `shareContent` configuration                                  |
+| `NetworkMonitoringConfig`                        | Dev-mode, branding, `shareContent`, `openUrl`, and `remoteMonitorPort`                |
 | `NetworkMonitorOverlayWrapper`                   | Shows/hides the floating overlay via `MaterialApp.builder`                            |
 | `VersionTapDetector`                             | Optional secret tap gesture to unlock dev mode                                        |
-| `NetworkMonitoring.instance.controller`          | `requestEnableDevMode()`, `enableDevMode()`, `disableDevMode()`, `toggleMonitoring()` |
+| `NetworkMonitoring.instance.controller`          | `requestEnableDevMode()`, `enableDevMode()`, `disableDevMode()`, `toggleMonitoring()`, `toggleRemoteMonitor()` |
 | `NetworkMonitoringBuilder`                       | Rebuild on selected controller state changes                                          |
 | `DevModeOptionsView`                             | Built-in dev settings screen                                                          |
 | `NetworkMonitorChange` / `NetworkMonitorChanges` | Fine-grained rebuild subscriptions                                                    |
@@ -349,7 +358,8 @@ Note: This package is not intended to be used in production, But if you use it i
 
 - Keep `validatePasswordInput` set in release builds, or gate initialization behind `kDebugMode` and `enabled: false`.
 - If you want to use it in production, try to use dynamic password, so you can change the password from the server (or firebase remote config, ...).
-- The overlay and monitor screens are intended for development and QA — do not expose dev mode unlock UI to end users.
+- The overlay, monitor screens, and **remote monitor** are intended for development and QA — do not expose dev mode unlock UI to end users.
+- The remote monitor binds an unauthenticated HTTP server on the LAN. Use it only on a trusted network and disable it when finished.
 - Use `requestEnableDevMode(context)` for custom unlock UI so the password dialog stays consistent with `VersionTapDetector`.
 - Use `enableDevMode()` only behind `kDebugMode` or when you intentionally skip the dialog.
 

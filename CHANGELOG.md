@@ -2,15 +2,25 @@
 
 All notable changes to this package are documented in this file.
 
-## [2.3.0] - 2026-08-04
+## [2.3.0] - 2026-08-19
 
 ### Added
 
-- Remote monitor: local Dart HTTP server (default port `7382`, falls back to the next free port) that serves a browser UI with the same list, search scopes, method filters, detail tabs, find-in-page, JSON/table views, and JWT decode as the in-app monitor
+- Remote monitor: local Dart HTTP server (default port `7382`, falls back to the next free port) that serves a browser UI
+- Split-pane remote UI: request list on the left, details on the right (stacked on narrow screens)
+- Remote breakpoints: add/toggle rules, pause/edit/continue/cancel with header and body edits applied to the real Dio request/response, global pause, and an applied-breakpoints panel
+- Live updates from the device over WebSocket (`/ws`), with Server-Sent Events fallback
+- Keyboard navigation in the remote UI: arrow keys and Enter for the request list, left/right to switch detail tabs, last selected tab kept when changing requests
+- Copy on remote over plain HTTP LAN URLs (Clipboard API fallback)
 - Remote monitor toggle in Dev Mode Options with a clickable URL and copy action
 - Optional `openUrl` and `remoteMonitorPort` on `NetworkMonitoringConfig`
 - `HttpRecordModel.toJson()` for the remote API
 - `NetworkMonitorChange.remoteMonitor` for reactive UI updates
+
+### Changed
+
+- Stronger highlight color for the current find-in-page match (in-app and remote)
+- Share actions are hidden in the remote UI (copy remains available)
 
 ## [2.2.0] - 2026-08-04
 
@@ -72,6 +82,7 @@ Initial release.
 - English and Arabic localizations
 - Example notes app (`example/`) demonstrating Dio integration, JWT auth, and dev-mode unlock
 
+[2.3.0]: https://github.com/omarfaroke/network_monitoring/releases/tag/v2.3.0
 [2.2.0]: https://github.com/omarfaroke/network_monitoring/releases/tag/v2.2.0
 [2.1.0]: https://github.com/omarfaroke/network_monitoring/releases/tag/v2.1.0
 [2.0.0]: https://github.com/omarfaroke/network_monitoring/releases/tag/v2.0.0
