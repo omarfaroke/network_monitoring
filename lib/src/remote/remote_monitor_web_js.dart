@@ -59,7 +59,12 @@ const _kAppJs = r'''
     breakpoints: [],
     total: 0,
     filtered: 0,
+    openModalKind: null,
+    _fetchGen: 0,
+    _lastLive: 0,
   };
+  const codeStore = new Map();
+  let codeStoreSeq = 0;
 
   const $ = (id) => document.getElementById(id);
   const toastEl = $('toast');
@@ -160,6 +165,15 @@ const _kAppJs = r'''
     return window.matchMedia('(max-width: 800px)').matches;
   }
 
+  function encodeAttr(value) {
+    const text = value == null ? '' : String(value);
+    try {
+      return encodeURIComponent(text);
+    } catch (_) {
+      return encodeURIComponent(text.replace(/[\uD800-\uDFFF]/g, ''));
+    }
+  }
+
   function escapeHtml(s) {
     return String(s)
       .replaceAll('&', '&amp;')
@@ -242,13 +256,47 @@ const _kAppJs = r'''
 
   function applyMonitorState(data) {
     if (!data) return;
-    state.pausedGlobally = !!data.pausedGlobally;
-    state.activeBreakpointCount = data.activeBreakpointCount || 0;
-    state.hasEnabledAllEndpointsBreakpoint = !!data.hasEnabledAllEndpointsBreakpoint;
-    state.breakpoints = data.breakpoints || state.breakpoints;
+    if (typeof data.pausedGlobally === 'boolean') {
+      state.pausedGlobally = data.pausedGlobally;
+    }
+    if (typeof data.activeBreakpointCount === 'number') {
+      state.activeBreakpointCount = data.activeBreakpointCount;
+    }
+    if (typeof data.hasEnabledAllEndpointsBreakpoint === 'boolean') {
+      state.hasEnabledAllEndpointsBreakpoint = data.hasEnabledAllEndpointsBreakpoint;
+    }
+    if (Array.isArray(data.breakpoints)) {
+      state.breakpoints = data.breakpoints;
+    }
     if (typeof data.total === 'number') state.total = data.total;
-    if (typeof data.filtered === 'number') state.filtered = data.filtered;
+    if (typeof data.filtered === 'number' && !Array.isArray(data.records)) {
+      state.filtered = data.filtered;
+    }
+
+    if (Array.isArray(data.activeBreakpointIds)) {
+      const active = new Set(data.activeBreakpointIds);
+      for (const rec of state.records) {
+        const resId = 'res_' + rec.id;
+        rec.isPaused = active.has(rec.id) || active.has(resId);
+        rec.pausedBreakpointId = active.has(rec.id)
+          ? rec.id
+          : (active.has(resId) ? resId : null);
+        rec.isResponseBreakpoint = !!(rec.pausedBreakpointId &&
+          String(rec.pausedBreakpointId).startsWith('res_'));
+      }
+    }
+    if (Array.isArray(data.breakpoints)) {
+      for (const rec of state.records) {
+        rec.hasBreakpoint = data.breakpoints.some((bp) =>
+          bp.target === 'specificEndpoint' && bp.endpointPattern === rec.path
+        );
+      }
+    }
+
+    syncSelectedFromList();
     renderChrome();
+    renderList();
+    renderDetailPauseActions();
   }
 
   function renderChrome() {
@@ -419,6 +467,20 @@ const _kAppJs = r'''
     return card;
   }
 
+  async function continuePaused(id, payload = {}) {
+    await api('/api/active-breakpoints/continue', {
+      method: 'POST',
+      body: { id, ...payload },
+    });
+  }
+
+  async function cancelPaused(id) {
+    await api('/api/active-breakpoints/cancel', {
+      method: 'POST',
+      body: { id },
+    });
+  }
+
   async function handleCardAction(action, record) {
     try {
       if (action === 'toggle-bp') {
@@ -429,12 +491,12 @@ const _kAppJs = r'''
       }
       const bpId = record.pausedBreakpointId;
       if (action === 'continue' && bpId) {
-        await api(`/api/active-breakpoints/${encodeURIComponent(bpId)}/continue`, { method: 'POST', body: {} });
+        await continuePaused(bpId);
         loadRecords();
         return;
       }
       if (action === 'cancel' && bpId) {
-        await api(`/api/active-breakpoints/${encodeURIComponent(bpId)}/cancel`, { method: 'POST', body: {} });
+        await cancelPaused(bpId);
         loadRecords();
         return;
       }
@@ -490,6 +552,7 @@ const _kAppJs = r'''
     state.record = null;
     applyLayout();
     renderList();
+    renderDetailPauseActions();
   }
 
   async function openDetail(id, initialQuery) {
@@ -515,19 +578,44 @@ const _kAppJs = r'''
     if (state.matches.length) state.tab = state.matches[0].tab;
     renderTabs();
     renderDetail();
+    renderDetailPauseActions();
     scrollActiveMatch();
   }
 
   async function refreshDetail() {
     if (!state.selectedId) return;
+    const gen = state._fetchGen;
     try {
-      state.record = await api(`/api/records/${encodeURIComponent(state.selectedId)}`);
+      const record = await api(`/api/records/${encodeURIComponent(state.selectedId)}`);
+      if (gen !== state._fetchGen || state.selectedId !== record.id) return;
+      state.record = record;
       $('detailTitle').textContent = `${state.record.method || ''} ${state.record.path || ''}`.trim() || 'Details';
       updateMatches();
       renderDetail();
-    } catch {
-      clearSelection();
+      renderDetailPauseActions();
+    } catch (_) {}
+  }
+
+  function renderDetailPauseActions() {
+    const host = $('detailPauseActions');
+    if (!host) return;
+    const record = state.record;
+    if (!record || !record.isPaused || !record.pausedBreakpointId) {
+      host.classList.add('hidden');
+      host.innerHTML = '';
+      return;
     }
+    host.classList.remove('hidden');
+    host.innerHTML = `
+      <button class="action-btn edit" data-dpa="edit" title="Edit">${svgIcon('edit')}</button>
+      <button class="action-btn play" data-dpa="continue" title="Continue">${svgIcon('play_arrow')}</button>
+      <button class="action-btn stop" data-dpa="cancel" title="Cancel">${svgIcon('stop')}</button>`;
+    host.querySelectorAll('[data-dpa]').forEach((el) => {
+      el.onclick = (e) => {
+        e.stopPropagation();
+        handleCardAction(el.getAttribute('data-dpa'), record);
+      };
+    });
   }
 
   function effectiveTabScopes() {
@@ -614,7 +702,7 @@ const _kAppJs = r'''
         ? highlight(item.value, q, offset, state.matches[state.matchCursor]?.globalIndex ?? -1)
         : escapeHtml(item.value);
       const copy = item.copyable
-        ? `<button class="copy-inline" data-copy="${encodeURIComponent(item.value)}" title="Copy">${svgIcon('copy')}</button>`
+        ? `<button class="copy-inline" data-copy="${encodeAttr(item.value)}" title="Copy">${svgIcon('copy')}</button>`
         : '';
       html += `<div class="kv"><div class="label">${escapeHtml(item.label)}</div>
         <div class="value">${valueHtml}</div>${copy}</div>`;
@@ -629,10 +717,12 @@ const _kAppJs = r'''
     const viewId = `view-${blockId || title}`;
     const offset = blockId ? matchOffset(blockId) : 0;
     const active = state.matches[state.matchCursor]?.globalIndex ?? -1;
+    const token = `c${++codeStoreSeq}`;
+    codeStore.set(token, content);
     const body = q
       ? `<pre class="pre">${highlight(content, q, offset, active)}</pre>`
       : `<pre class="pre">${escapeHtml(content)}</pre>`;
-    return `<div class="block" data-code-block="${escapeHtml(viewId)}" data-content="${encodeURIComponent(content)}" data-can-table="${canTable ? '1' : '0'}">
+    return `<div class="block" data-code-block="${escapeHtml(viewId)}" data-content-key="${token}" data-can-table="${canTable ? '1' : '0'}">
       <div class="block-head">
         <div class="block-title">${escapeHtml(title)}</div>
         <div class="block-actions">
@@ -693,6 +783,8 @@ const _kAppJs = r'''
   function renderDetail() {
     const record = state.record;
     if (!record) return;
+    codeStore.clear();
+    codeStoreSeq = 0;
     const q = state.detailSearchVisible ? state.detailQuery.trim() : '';
     const body = $('detailBody');
     let html = '';
@@ -754,7 +846,7 @@ const _kAppJs = r'''
       };
     });
     body.querySelectorAll('[data-code-block]').forEach((block) => {
-      const content = decodeURIComponent(block.getAttribute('data-content') || '');
+      const content = codeStore.get(block.getAttribute('data-content-key')) || '';
       const bodyEl = block.querySelector('.code-body');
       const tableBtn = block.querySelector('.view-table');
       let tableView = false;
@@ -816,28 +908,153 @@ const _kAppJs = r'''
   }
 
   async function loadRecords() {
+    const gen = ++state._fetchGen;
     try {
       const params = new URLSearchParams();
       if (state.query) params.set('q', state.query);
       if (state.method) params.set('method', state.method);
       params.set('scopes', [...state.scopes].join(','));
       const data = await api(`/api/records?${params}`);
+      if (gen !== state._fetchGen) return;
       state.records = data.records || [];
       applyMonitorState(data);
       renderList();
-      if (state.selectedId) await refreshDetail();
+      if (state.selectedId) {
+        try { await refreshDetail(); } catch (_) {}
+      }
     } catch (_) {
+      if (gen !== state._fetchGen) return;
+    }
+  }
+
+  function filterRecordsLocally(records) {
+    const q = (state.query || '').trim().toLowerCase();
+    const method = state.method;
+    return (records || []).filter((rec) => {
+      if (method && String(rec.method || '').toUpperCase() !== method) return false;
+      if (!q) return true;
+      const hay = [rec.url, rec.path, rec.method, rec.status, rec.statusCode]
+        .map((v) => String(v ?? '').toLowerCase())
+        .join(' ');
+      return hay.includes(q);
+    });
+  }
+
+  function applyLiveRecords(records, total) {
+    state._fetchGen += 1;
+    state.records = filterRecordsLocally(records);
+    if (typeof total === 'number') state.total = total;
+    state.filtered = state.records.length;
+  }
+
+  function syncSelectedFromList() {
+    if (!state.selectedId) return;
+    const selected = state.records.find((rec) => rec.id === state.selectedId);
+    if (!selected) return;
+    if (!state.record || state.record.id !== selected.id) return;
+    const wasPaused = !!state.record.isPaused;
+    state.record.isPaused = selected.isPaused;
+    state.record.pausedBreakpointId = selected.pausedBreakpointId;
+    state.record.isResponseBreakpoint = selected.isResponseBreakpoint;
+    state.record.status = selected.status;
+    state.record.statusCode = selected.statusCode;
+    state.record.formattedDuration = selected.formattedDuration;
+    if (wasPaused !== !!selected.isPaused) {
+      renderDetailPauseActions();
+    }
+  }
+
+  function connectLive() {
+    if (state._ws && (state._ws.readyState === WebSocket.OPEN || state._ws.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
+    if (state._ws) {
+      try {
+        state._ws.onclose = null;
+        state._ws.onerror = null;
+        state._ws.onmessage = null;
+        state._ws.close();
+      } catch (_) {}
+      state._ws = null;
+    }
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    let socket;
+    try {
+      socket = new WebSocket(`${proto}://${location.host}/ws`);
+    } catch (_) {
+      connectSse();
+      setTimeout(connectLive, 1500);
+      return;
+    }
+    state._ws = socket;
+    state._lastLive = Date.now();
+    socket.onopen = () => {
+      state._wsFails = 0;
+      state._lastLive = Date.now();
+      if (state._sse) {
+        try { state._sse.close(); } catch (_) {}
+        state._sse = null;
+      }
+    };
+    socket.onmessage = (event) => {
+      state._lastLive = Date.now();
+      try {
+        handleLiveEvent(JSON.parse(event.data));
+      } catch (_) {}
+    };
+    socket.onerror = () => {};
+    socket.onclose = () => {
+      if (state._ws !== socket) return;
+      state._ws = null;
       $('statusLine').textContent = 'Reconnecting…';
+      connectSse();
+      setTimeout(connectLive, 800);
+    };
+    if (!state._liveWatch) {
+      state._liveWatch = setInterval(() => {
+        if (Date.now() - (state._lastLive || 0) > 25000) {
+          state._lastLive = Date.now();
+          try { state._ws && state._ws.close(); } catch (_) {}
+        }
+      }, 5000);
     }
   }
 
   function connectSse() {
+    if (state._sse) return;
     const es = new EventSource('/api/events');
-    es.onmessage = () => { loadRecords(); };
-    es.onerror = () => { $('statusLine').textContent = 'Reconnecting…'; };
+    state._sse = es;
+    es.onmessage = (event) => {
+      state._lastLive = Date.now();
+      try {
+        handleLiveEvent(JSON.parse(event.data));
+      } catch (_) {}
+    };
+    es.onerror = () => {
+      try { es.close(); } catch (_) {}
+      if (state._sse === es) state._sse = null;
+    };
+  }
+
+  function handleLiveEvent(data) {
+    if (!data) return;
+    if (data.type === 'ping') {
+      state._lastLive = Date.now();
+      return;
+    }
+    try {
+      if (Array.isArray(data.records)) {
+        applyLiveRecords(data.records, data.total);
+      }
+      applyMonitorState(data);
+      if (data.type === 'breakpoints' && state.openModalKind === 'breakpoints') {
+        openAppliedBreakpoints();
+      }
+    } catch (_) {}
   }
 
   function closeModal() {
+    state.openModalKind = null;
     const overlay = $('modalOverlay');
     overlay.classList.add('hidden');
     overlay.innerHTML = '';
@@ -855,6 +1072,7 @@ const _kAppJs = r'''
   }
 
   function openAddBreakpoint(initialPath) {
+    state.openModalKind = 'add';
     const specific = !!(initialPath && initialPath.length);
     const modal = openModal(`
       <div class="modal-head"><h3>Add Breakpoint</h3><button class="icon-btn" data-close title="Close">${svgIcon('close')}</button></div>
@@ -891,6 +1109,7 @@ const _kAppJs = r'''
   }
 
   function openAppliedBreakpoints() {
+    state.openModalKind = 'breakpoints';
     const items = state.breakpoints.length
       ? state.breakpoints.map((bp) => `
           <div class="bp-item" data-index="${bp.index}">
@@ -922,6 +1141,7 @@ const _kAppJs = r'''
   }
 
   function openClearDialog() {
+    state.openModalKind = 'clear';
     const modal = openModal(`
       <div class="modal-head"><h3>Clear all records?</h3></div>
       <div class="modal-body"><p class="muted">This will remove all captured HTTP requests from the list.</p></div>
@@ -948,8 +1168,17 @@ const _kAppJs = r'''
       return;
     }
     const isResponse = String(breakpointId).startsWith('res_');
-    const originalHeaders = prettyJson(isResponse ? record.responseHeaders : record.requestHeaders) || '{}';
-    const originalBody = prettyJson(isResponse ? record.responseBody : record.requestBody);
+    state.openModalKind = 'edit';
+    const originalHeaders = (
+      isResponse
+        ? record.responseHeadersFormatted
+        : record.requestHeadersFormatted
+    ) || prettyJson(isResponse ? record.responseHeaders : record.requestHeaders) || '{}';
+    const originalBody = (
+      isResponse
+        ? record.responseBodyFormatted
+        : record.requestBodyFormatted
+    ) || prettyJson(isResponse ? record.responseBody : record.requestBody) || '';
     const modal = openModal(`
       <div class="modal-head">
         <h3>${isResponse ? 'Edit Response' : 'Edit Request'}</h3>
@@ -988,35 +1217,60 @@ const _kAppJs = r'''
     });
     modal.querySelector('[data-close]').onclick = closeModal;
 
-    async function continueWith(payload) {
-      await api(`/api/active-breakpoints/${encodeURIComponent(breakpointId)}/continue`, {
-        method: 'POST',
-        body: payload,
-      });
-      closeModal();
-      loadRecords();
-    }
-    modal.querySelector('#editSkip').onclick = () => continueWith({});
-    modal.querySelector('#editContinue').onclick = () => continueWith({});
-    modal.querySelector('#editCancel').onclick = async () => {
-      await api(`/api/active-breakpoints/${encodeURIComponent(breakpointId)}/cancel`, { method: 'POST', body: {} });
-      closeModal();
-      loadRecords();
-    };
-    modal.querySelector('#editApply').onclick = async () => {
-      const payload = {};
+    function collectEdits() {
       const headersText = headersEl.value.trim();
-      if (headersText && headersText !== originalHeaders.trim()) {
-        try {
-          payload.editedHeaders = JSON.parse(headersText);
-        } catch {
-          toast('Invalid JSON in headers');
-          return;
-        }
+      if (!headersText) throw new Error('Headers JSON is required');
+      let parsed;
+      try {
+        parsed = JSON.parse(headersText);
+      } catch {
+        throw new Error('Invalid JSON in headers');
       }
-      const bodyText = bodyEl.value.trim();
-      if (bodyText && bodyText !== originalBody.trim()) payload.editedBody = bodyText;
-      await continueWith(payload);
+      if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        throw new Error('Headers must be a JSON object');
+      }
+      const headers = {};
+      for (const [key, value] of Object.entries(parsed)) {
+        headers[key] = Array.isArray(value)
+          ? value.map((item) => (item == null ? '' : String(item)))
+          : (value == null ? '' : String(value));
+      }
+      return { editedHeaders: headers, editedBody: bodyEl.value };
+    }
+
+    async function resume(payload) {
+      try {
+        await continuePaused(breakpointId, payload);
+        closeModal();
+        loadRecords();
+      } catch (err) {
+        toast(err.message || 'Could not continue request');
+      }
+    }
+
+    modal.querySelector('#editSkip').onclick = () => resume({});
+    modal.querySelector('#editContinue').onclick = () => {
+      try {
+        resume(collectEdits());
+      } catch (err) {
+        toast(err.message || 'Invalid edits');
+      }
+    };
+    modal.querySelector('#editCancel').onclick = async () => {
+      try {
+        await cancelPaused(breakpointId);
+        closeModal();
+        loadRecords();
+      } catch (err) {
+        toast(err.message || 'Could not cancel request');
+      }
+    };
+    modal.querySelector('#editApply').onclick = () => {
+      try {
+        resume(collectEdits());
+      } catch (err) {
+        toast(err.message || 'Invalid edits');
+      }
     };
   }
 
@@ -1140,6 +1394,6 @@ const _kAppJs = r'''
   renderDetailScopes();
   applyLayout();
   loadRecords();
-  connectSse();
+  connectLive();
 })();
 ''';

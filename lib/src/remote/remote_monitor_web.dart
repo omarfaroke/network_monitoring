@@ -67,6 +67,7 @@ abstract final class RemoteMonitorWeb {
               <button id="backBtn" class="icon-btn hidden" title="Back" aria-label="Back"></button>
               <h2 id="detailTitle">Details</h2>
               <div class="topbar-actions">
+                <div id="detailPauseActions" class="card-actions hidden"></div>
                 <button id="detailSearchToggle" class="icon-btn" title="Search in details" aria-label="Search in details"></button>
                 <button id="detailMoreBtn" class="icon-btn" title="More" aria-label="More"></button>
               </div>

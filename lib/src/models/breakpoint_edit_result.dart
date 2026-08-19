@@ -4,7 +4,8 @@ import 'dart:convert';
 enum BreakpointAction { continueRequest, cancel }
 
 /// Result returned from [BreakpointEditView] to the interceptor.
-class BreakpointEditResult {  final BreakpointAction action;
+class BreakpointEditResult {
+  final BreakpointAction action;
   final Map<String, dynamic>? editedHeaders;
   final String? editedBody;
 
@@ -15,20 +16,38 @@ class BreakpointEditResult {  final BreakpointAction action;
   });
 
   const BreakpointEditResult.continueUnmodified()
-      : action = BreakpointAction.continueRequest,
-        editedHeaders = null,
-        editedBody = null;
+    : action = BreakpointAction.continueRequest,
+      editedHeaders = null,
+      editedBody = null;
 
   const BreakpointEditResult.cancel()
-      : action = BreakpointAction.cancel,
-        editedHeaders = null,
-        editedBody = null;
+    : action = BreakpointAction.cancel,
+      editedHeaders = null,
+      editedBody = null;
 
   bool get isCancelled => action == BreakpointAction.cancel;
   bool get hasEdits => editedHeaders != null || editedBody != null;
 
+  /// Header map with string (or string-list) values that Dio can apply.
+  Map<String, dynamic>? get normalizedHeaders {
+    if (editedHeaders == null) return null;
+    return {
+      for (final entry in editedHeaders!.entries)
+        entry.key: _normalizedHeaderValue(entry.value),
+    };
+  }
+
+  static dynamic _normalizedHeaderValue(dynamic value) {
+    if (value == null) return '';
+    if (value is List) {
+      return value.map((item) => item.toString()).toList();
+    }
+    return value.toString();
+  }
+
   /// Parsed [editedBody] as JSON when valid; otherwise the raw string.
-  dynamic get parsedBody {    if (editedBody == null || editedBody!.trim().isEmpty) return null;
+  dynamic get parsedBody {
+    if (editedBody == null || editedBody!.trim().isEmpty) return null;
     try {
       return jsonDecode(editedBody!);
     } catch (_) {

@@ -366,6 +366,10 @@ class NetworkMonitorController {
   /// Number of requests waiting at a breakpoint.
   int get activeBreakpointCount => _pendingBreakpoints.length;
 
+  /// IDs of requests currently waiting at a breakpoint (`res_` prefix = response).
+  List<String> get activeBreakpointIds =>
+      List<String>.unmodifiable(_pendingBreakpoints.keys);
+
   /// The [HttpRecordModel] associated with a paused [breakpointId].
   HttpRecordModel? getPausedRecord(String breakpointId) {
     final recordId = breakpointId.startsWith('res_')

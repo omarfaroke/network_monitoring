@@ -27,7 +27,10 @@ class RemoteMonitorStartResult {
 class RemoteMonitorServer {
   HttpServer? _server;
   StreamSubscription<NetworkMonitorChange>? _changeSub;
+  Timer? _heartbeat;
+  Timer? _liveDebounce;
   final Set<HttpResponse> _sseClients = {};
+  final Set<WebSocket> _wsClients = {};
   NetworkMonitorController? _controller;
   int? _port;
   String? _host;
@@ -66,11 +69,21 @@ class RemoteMonitorServer {
           change == NetworkMonitorChange.activeBreakpoints ||
           change == NetworkMonitorChange.globalPause ||
           change == NetworkMonitorChange.breakpoints) {
-        _broadcastSse({'type': change.name});
+        _scheduleLiveBroadcast();
       }
     });
 
-    _server!.listen(_handleRequest);
+    _heartbeat = Timer.periodic(const Duration(seconds: 15), (_) {
+      _broadcastLive({'type': 'ping'});
+    });
+
+    _server!.listen(
+      (request) {
+        unawaited(_handleRequest(request));
+      },
+      onError: (_) {},
+      cancelOnError: false,
+    );
 
     return RemoteMonitorStartResult(port: _port!, host: _host!, url: url!);
   }
@@ -78,6 +91,17 @@ class RemoteMonitorServer {
   Future<void> stop() async {
     await _changeSub?.cancel();
     _changeSub = null;
+    _heartbeat?.cancel();
+    _heartbeat = null;
+    _liveDebounce?.cancel();
+    _liveDebounce = null;
+
+    for (final socket in _wsClients.toList()) {
+      try {
+        await socket.close();
+      } catch (_) {}
+    }
+    _wsClients.clear();
 
     for (final client in _sseClients.toList()) {
       try {
@@ -133,6 +157,18 @@ class RemoteMonitorServer {
   }
 
   Future<void> _handleRequest(HttpRequest request) async {
+    try {
+      await _handleRequestInner(request);
+    } catch (_) {}
+  }
+
+  Future<void> _handleRequestInner(HttpRequest request) async {
+    final path = request.uri.path;
+    if (path == '/ws') {
+      await _attachWebSocket(request);
+      return;
+    }
+
     _addCors(request);
 
     if (request.method == 'OPTIONS') {
@@ -141,7 +177,6 @@ class RemoteMonitorServer {
       return;
     }
 
-    final path = request.uri.path;
     final controller = _controller;
     if (controller == null) {
       await _json(request, HttpStatus.serviceUnavailable, {
@@ -293,11 +328,57 @@ class RemoteMonitorServer {
         await _json(request, HttpStatus.ok, {'ok': true});
         return;
       }
+      if (path == '/api/active-breakpoints/continue' &&
+          request.method == 'POST') {
+        final body = await _readJson(request);
+        final id = body['id'] as String?;
+        if (id == null || id.isEmpty) {
+          await _json(request, HttpStatus.badRequest, {
+            'error': 'id is required',
+          });
+          return;
+        }
+        if (!controller.hasActiveBreakpoint(id)) {
+          await _json(request, HttpStatus.notFound, {
+            'error': 'No paused request for this id',
+          });
+          return;
+        }
+        controller.continueBreakpoint(id, result: _editResultFromJson(body));
+        await _json(request, HttpStatus.ok, {'ok': true});
+        return;
+      }
+      if (path == '/api/active-breakpoints/cancel' &&
+          request.method == 'POST') {
+        final body = await _readJson(request);
+        final id = body['id'] as String?;
+        if (id == null || id.isEmpty) {
+          await _json(request, HttpStatus.badRequest, {
+            'error': 'id is required',
+          });
+          return;
+        }
+        if (!controller.hasActiveBreakpoint(id)) {
+          await _json(request, HttpStatus.notFound, {
+            'error': 'No paused request for this id',
+          });
+          return;
+        }
+        controller.cancelBreakpoint(id);
+        await _json(request, HttpStatus.ok, {'ok': true});
+        return;
+      }
       final continueMatch = RegExp(
         r'^/api/active-breakpoints/([^/]+)/continue$',
       ).firstMatch(path);
       if (continueMatch != null && request.method == 'POST') {
         final id = Uri.decodeComponent(continueMatch.group(1)!);
+        if (!controller.hasActiveBreakpoint(id)) {
+          await _json(request, HttpStatus.notFound, {
+            'error': 'No paused request for this id',
+          });
+          return;
+        }
         final body = await _readJson(request);
         controller.continueBreakpoint(id, result: _editResultFromJson(body));
         await _json(request, HttpStatus.ok, {'ok': true});
@@ -308,6 +389,12 @@ class RemoteMonitorServer {
       ).firstMatch(path);
       if (cancelMatch != null && request.method == 'POST') {
         final id = Uri.decodeComponent(cancelMatch.group(1)!);
+        if (!controller.hasActiveBreakpoint(id)) {
+          await _json(request, HttpStatus.notFound, {
+            'error': 'No paused request for this id',
+          });
+          return;
+        }
         controller.cancelBreakpoint(id);
         await _json(request, HttpStatus.ok, {'ok': true});
         return;
@@ -315,9 +402,11 @@ class RemoteMonitorServer {
 
       await _json(request, HttpStatus.notFound, {'error': 'Not found'});
     } catch (e) {
-      await _json(request, HttpStatus.internalServerError, {
-        'error': e.toString(),
-      });
+      try {
+        await _json(request, HttpStatus.internalServerError, {
+          'error': e.toString(),
+        });
+      } catch (_) {}
     }
   }
 
@@ -357,6 +446,7 @@ class RemoteMonitorServer {
           controller.hasEnabledAllEndpointsBreakpoint,
       'monitoringEnabled': controller.isMonitoringEnabled,
       'breakpoints': _breakpointsJson(controller),
+      'activeBreakpointIds': controller.activeBreakpointIds,
     };
   }
 
@@ -436,9 +526,24 @@ class RemoteMonitorServer {
   }
 
   BreakpointEditResult _editResultFromJson(Map<String, dynamic> body) {
-    final headers = _asStringKeyedMap(body['editedHeaders']);
-    final editedBody = body['editedBody'] as String?;
-    if (headers == null && (editedBody == null || editedBody.isEmpty)) {
+    Map<String, dynamic>? headers;
+    if (body.containsKey('editedHeaders')) {
+      headers = _normalizeHeaderMap(_asStringKeyedMap(body['editedHeaders']));
+    }
+
+    String? editedBody;
+    if (body.containsKey('editedBody')) {
+      final raw = body['editedBody'];
+      if (raw == null) {
+        editedBody = '';
+      } else if (raw is String) {
+        editedBody = raw;
+      } else {
+        editedBody = jsonEncode(raw);
+      }
+    }
+
+    if (headers == null && editedBody == null) {
       return const BreakpointEditResult.continueUnmodified();
     }
     return BreakpointEditResult(
@@ -446,6 +551,16 @@ class RemoteMonitorServer {
       editedHeaders: headers,
       editedBody: editedBody,
     );
+  }
+
+  Map<String, dynamic>? _normalizeHeaderMap(Map<String, dynamic>? headers) {
+    if (headers == null) return null;
+    return {
+      for (final entry in headers.entries)
+        entry.key: entry.value is List
+            ? (entry.value as List).map((item) => item.toString()).toList()
+            : (entry.value?.toString() ?? ''),
+    };
   }
 
   Map<String, dynamic>? _asStringKeyedMap(dynamic value) {
@@ -492,12 +607,20 @@ class RemoteMonitorServer {
     response.statusCode = HttpStatus.ok;
     response.headers
       ..set(HttpHeaders.contentTypeHeader, 'text/event-stream; charset=utf-8')
-      ..set(HttpHeaders.cacheControlHeader, 'no-cache')
+      ..set(
+        HttpHeaders.cacheControlHeader,
+        'no-cache, no-store, must-revalidate',
+      )
       ..set(HttpHeaders.connectionHeader, 'keep-alive')
-      ..set('Access-Control-Allow-Origin', '*');
+      ..set('Access-Control-Allow-Origin', '*')
+      ..set('X-Accel-Buffering', 'no');
 
     _sseClients.add(response);
-    response.write('data: ${jsonEncode({'type': 'connected'})}\n\n');
+    final controller = _controller;
+    final hello = controller == null
+        ? {'type': 'connected'}
+        : _liveSnapshot('connected', controller);
+    response.write('data: ${jsonEncode(hello)}\n\n');
     await response.flush();
 
     // Keep the connection open until the client disconnects or server stops.
@@ -509,15 +632,104 @@ class RemoteMonitorServer {
     await done.future;
   }
 
-  void _broadcastSse(Map<String, dynamic> event) {
-    final payload = 'data: ${jsonEncode(event)}\n\n';
+  Future<void> _attachWebSocket(HttpRequest request) async {
+    WebSocket socket;
+    try {
+      socket = await WebSocketTransformer.upgrade(request);
+    } catch (_) {
+      return;
+    }
+
+    _wsClients.add(socket);
+    final controller = _controller;
+    if (controller != null) {
+      try {
+        socket.add(jsonEncode(_liveSnapshot('connected', controller)));
+      } catch (_) {
+        _dropWs(socket);
+        return;
+      }
+    }
+
+    socket.listen(
+      (_) {},
+      onDone: () => _wsClients.remove(socket),
+      onError: (_) {
+        _wsClients.remove(socket);
+        try {
+          socket.close();
+        } catch (_) {}
+      },
+      cancelOnError: false,
+    );
+  }
+
+  void _scheduleLiveBroadcast() {
+    _liveDebounce?.cancel();
+    // Event-queue timer (not a microtask) so Continue HTTP can finish
+    // before we snapshot, and so WebSocket writes are never nested in
+    // the interceptor / request handler.
+    _liveDebounce = Timer(Duration.zero, () {
+      _liveDebounce = null;
+      final controller = _controller;
+      if (controller == null) return;
+      try {
+        _broadcastLive(_liveSnapshot('records', controller));
+      } catch (_) {}
+    });
+  }
+
+  Map<String, dynamic> _liveSnapshot(
+    String type,
+    NetworkMonitorController controller,
+  ) {
+    final records = List<HttpRecordModel>.of(controller.records);
+    return {
+      'type': type,
+      ..._monitorState(controller),
+      'records': [
+        for (final record in records) _listRecordJson(record, controller),
+      ],
+      'total': records.length,
+      'filtered': records.length,
+    };
+  }
+
+  void _dropWs(WebSocket socket) {
+    _wsClients.remove(socket);
+    try {
+      socket.close();
+    } catch (_) {}
+  }
+
+  void _broadcastLive(Map<String, dynamic> event) {
+    String json;
+    try {
+      json = jsonEncode(event);
+    } catch (_) {
+      return;
+    }
+    final ssePayload = 'data: $json\n\n';
+
     for (final client in _sseClients.toList()) {
       try {
-        client.write(payload);
+        client.write(ssePayload);
         // ignore: discarded_futures
         client.flush();
       } catch (_) {
         _sseClients.remove(client);
+      }
+    }
+
+    for (final socket in _wsClients.toList()) {
+      if (socket.readyState != WebSocket.open) {
+        _dropWs(socket);
+        continue;
+      }
+      try {
+        socket.add(json);
+      } catch (_) {
+        _dropWs(socket);
       }
     }
   }
@@ -530,10 +742,18 @@ class RemoteMonitorServer {
   }
 
   Future<void> _json(HttpRequest request, int status, Object body) async {
+    String encoded;
+    try {
+      encoded = jsonEncode(body);
+    } catch (e) {
+      status = HttpStatus.internalServerError;
+      encoded = jsonEncode({'error': e.toString()});
+    }
     request.response
       ..statusCode = status
       ..headers.contentType = ContentType.json
-      ..write(jsonEncode(body));
+      ..headers.set(HttpHeaders.cacheControlHeader, 'no-store')
+      ..write(encoded);
     await request.response.close();
   }
 

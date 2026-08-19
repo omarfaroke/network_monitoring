@@ -76,14 +76,15 @@ class NetworkMonitorInterceptor extends Interceptor {
 
       if (result.hasEdits) {
         if (result.editedHeaders != null) {
-          options.headers.clear();
-          options.headers.addAll(result.editedHeaders!);
+          _applyRequestHeaders(options, result.normalizedHeaders!);
           record.requestHeaders
             ..clear()
-            ..addAll(result.editedHeaders!);
+            ..addAll(options.headers);
         }
         if (result.editedBody != null) {
           options.data = result.parsedBody;
+          options.headers.remove('content-length');
+          options.headers.remove('Content-Length');
           record.requestBody = result.parsedBody;
         }
         _controller.updateRecord(requestId, record);
@@ -105,14 +106,12 @@ class NetworkMonitorInterceptor extends Interceptor {
     }
 
     final requestId = response.requestOptions.extra[_requestIdKey] as String?;
-    final startTimeMs =
-        response.requestOptions.extra[_startTimeKey] as int?;
+    final startTimeMs = response.requestOptions.extra[_startTimeKey] as int?;
 
     if (requestId != null) {
       final endTime = DateTime.now();
       final duration = startTimeMs != null
-          ? endTime.difference(
-              DateTime.fromMillisecondsSinceEpoch(startTimeMs))
+          ? endTime.difference(DateTime.fromMillisecondsSinceEpoch(startTimeMs))
           : null;
 
       final records = _controller.records;
@@ -131,7 +130,8 @@ class NetworkMonitorInterceptor extends Interceptor {
       }
 
       if (_controller.shouldBreakOnResponse(
-          response.requestOptions.uri.toString())) {
+        response.requestOptions.uri.toString(),
+      )) {
         final result = await _controller.waitForBreakpoint('res_$requestId');
 
         if (result.isCancelled) {
@@ -149,9 +149,10 @@ class NetworkMonitorInterceptor extends Interceptor {
             }
           }
           if (result.editedHeaders != null) {
+            _applyResponseHeaders(response, result.normalizedHeaders!);
             if (existingIndex != -1) {
               final existing = records[existingIndex];
-              existing.responseHeaders = result.editedHeaders;
+              existing.responseHeaders = result.normalizedHeaders;
               _controller.updateRecord(requestId, existing);
             }
           }
@@ -179,8 +180,7 @@ class NetworkMonitorInterceptor extends Interceptor {
     if (requestId != null) {
       final endTime = DateTime.now();
       final duration = startTimeMs != null
-          ? endTime.difference(
-              DateTime.fromMillisecondsSinceEpoch(startTimeMs))
+          ? endTime.difference(DateTime.fromMillisecondsSinceEpoch(startTimeMs))
           : null;
 
       final records = _controller.records;
@@ -226,5 +226,40 @@ class NetworkMonitorInterceptor extends Interceptor {
       map[name] = values.length == 1 ? values.first : values;
     });
     return map;
+  }
+
+  void _applyRequestHeaders(
+    RequestOptions options,
+    Map<String, dynamic> headers,
+  ) {
+    options.headers.clear();
+    for (final entry in headers.entries) {
+      final value = entry.value;
+      options.headers[entry.key] = value is List
+          ? value.map((item) => item.toString()).join(', ')
+          : value.toString();
+    }
+    final contentType =
+        options.headers['content-type'] ?? options.headers['Content-Type'];
+    if (contentType is String && contentType.isNotEmpty) {
+      options.contentType = contentType;
+    }
+  }
+
+  void _applyResponseHeaders(Response response, Map<String, dynamic> headers) {
+    for (final name in response.headers.map.keys.toList()) {
+      response.headers.removeAll(name);
+    }
+    for (final entry in headers.entries) {
+      final value = entry.value;
+      if (value is List) {
+        response.headers.set(
+          entry.key,
+          value.map((item) => item.toString()).toList(),
+        );
+      } else {
+        response.headers.set(entry.key, value.toString());
+      }
+    }
   }
 }
