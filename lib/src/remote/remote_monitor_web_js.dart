@@ -30,7 +30,6 @@ const _kAppJs = r'''
     arrow_back: 'M17.77 3.77L16 2 6 12l10 10 1.77-1.77L9.54 12z',
     keyboard_arrow_up: 'M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z',
     keyboard_arrow_down: 'M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z',
-    share: 'M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z',
     http: 'M24 9v6h-2V9h2zM4.5 15h-2V9h2v6zm5.7 0H7.7L6 9h2.1l.9 4.2L10 9h2.1l-1.9 6zm4.7-1.8V15h-2V9h3.3c.8 0 1.5.2 1.9.6.4.4.6.9.6 1.5 0 .5-.1.9-.4 1.2-.2.3-.6.5-1 .6l1.3 2.1h-2.2l-1.1-1.8h-.4zm.8-1.3c.2 0 .4-.1.5-.2.1-.1.2-.3.2-.5s-.1-.4-.2-.5c-.1-.1-.3-.2-.5-.2h-1v1.4h1z',
     open_in_new: 'M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z',
     skip_next: 'M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z',
@@ -85,12 +84,49 @@ const _kAppJs = r'''
     toastEl._t = setTimeout(() => toastEl.classList.add('hidden'), 1400);
   }
 
-  async function copyText(text, msg) {
+  function copyWithExecCommand(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.top = '0';
+    textarea.style.left = '0';
+    textarea.style.width = '1px';
+    textarea.style.height = '1px';
+    textarea.style.padding = '0';
+    textarea.style.border = 'none';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
+    let ok = false;
     try {
-      await navigator.clipboard.writeText(text);
+      ok = document.execCommand('copy');
+    } catch (_) {
+      ok = false;
+    }
+    document.body.removeChild(textarea);
+    return ok;
+  }
+
+  async function copyText(text, msg) {
+    const value = text == null ? '' : String(text);
+    try {
+      // Clipboard API is only available in secure contexts (HTTPS / localhost).
+      // The remote monitor is typically opened via http://<lan-ip>, so fall back.
+      if (window.isSecureContext && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+      } else if (!copyWithExecCommand(value)) {
+        throw new Error('copy');
+      }
       toast(msg || 'Copied to clipboard');
     } catch {
-      toast('Copy failed');
+      if (copyWithExecCommand(value)) {
+        toast(msg || 'Copied to clipboard');
+      } else {
+        toast('Copy failed');
+      }
     }
   }
 
@@ -602,7 +638,6 @@ const _kAppJs = r'''
         <div class="block-actions">
           ${canTable ? `<button class="icon-btn tiny view-table" title="Table">${svgIcon('table_rows')}</button>` : ''}
           <button class="icon-btn tiny copy-btn" title="Copy">${svgIcon('copy')}</button>
-          <button class="icon-btn tiny share-btn" title="Share">${svgIcon('share')}</button>
         </div>
       </div>
       <div class="code-body">${body}</div>
@@ -724,7 +759,6 @@ const _kAppJs = r'''
       const tableBtn = block.querySelector('.view-table');
       let tableView = false;
       block.querySelector('.copy-btn')?.addEventListener('click', () => copyText(content, `Copied ${block.querySelector('.block-title')?.textContent || ''}`));
-      block.querySelector('.share-btn')?.addEventListener('click', () => shareText(`${block.querySelector('.block-title')?.textContent || ''}:\n${content}`));
       if (tableBtn && bodyEl) {
         tableBtn.onclick = () => {
           tableView = !tableView;
@@ -740,16 +774,6 @@ const _kAppJs = r'''
         };
       }
     });
-  }
-
-  async function shareText(text) {
-    try {
-      if (navigator.share) {
-        await navigator.share({ text });
-        return;
-      }
-    } catch (_) {}
-    copyText(text, 'Copied to clipboard');
   }
 
   function formatTime(iso) {
@@ -1012,28 +1036,7 @@ const _kAppJs = r'''
     if (record.jwt?.payloadFormatted) {
       items.push({ icon: 'copy', label: 'Copy JWT Payload', onSelect: () => copyText(record.jwt.payloadFormatted, 'Copied to clipboard') });
     }
-    items.push({
-      icon: 'share',
-      label: 'Share All',
-      onSelect: () => shareText(buildShareContent(record)),
-    });
     showMenu(rect.right, rect.bottom, items);
-  }
-
-  function buildShareContent(record) {
-    return [
-      'API Request Details',
-      `URL: ${record.url}`,
-      `Method: ${record.method}`,
-      `Status: ${record.statusCode ?? ''} ${record.statusMessage ?? ''}`,
-      `Duration: ${record.formattedDuration || '-'}`,
-      '',
-      'Request Headers',
-      record.requestHeadersFormatted || '',
-      '',
-      record.requestBodyFormatted ? `Request Body\n${record.requestBodyFormatted}` : '',
-      record.responseBodyFormatted ? `Response Body\n${record.responseBodyFormatted}` : '',
-    ].filter(Boolean).join('\n');
   }
 
   function initIcons() {
