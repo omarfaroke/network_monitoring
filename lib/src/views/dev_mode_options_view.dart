@@ -35,6 +35,7 @@ class _DevModeOptionsViewState extends State<DevModeOptionsView>
 
   Future<void> _onRemoteMonitorChanged(bool value) async {
     if (_remoteToggleBusy) return;
+    if (value && !networkMonitorController.isMonitoringEnabled) return;
     setState(() => _remoteToggleBusy = true);
     try {
       await networkMonitorController.toggleRemoteMonitor(value);
@@ -216,7 +217,9 @@ class _DevModeOptionsViewState extends State<DevModeOptionsView>
                       child: Text(
                         l10n.remoteMonitorEnabled,
                         style: NmTextStyles.medium14(context).copyWith(
-                          color: NmTheme.onSurface(context),
+                          color: controller.isMonitoringEnabled
+                              ? NmTheme.onSurface(context)
+                              : NmTheme.onSurfaceVariant(context),
                         ),
                       ),
                     ),
@@ -231,8 +234,11 @@ class _DevModeOptionsViewState extends State<DevModeOptionsView>
                       )
                     else
                       Switch(
-                        value: controller.isRemoteMonitorEnabled,
-                        onChanged: _onRemoteMonitorChanged,
+                        value: controller.isMonitoringEnabled &&
+                            controller.isRemoteMonitorEnabled,
+                        onChanged: controller.isMonitoringEnabled
+                            ? _onRemoteMonitorChanged
+                            : null,
                         activeTrackColor:
                             NmTheme.primary(context).withValues(alpha: 0.5),
                         activeThumbColor: NmTheme.primary(context),

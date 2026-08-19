@@ -138,8 +138,11 @@ class NetworkMonitorController {
   }
 
   /// Starts or stops the remote browser monitor server.
+  ///
+  /// Enabling requires [isMonitoringEnabled]; otherwise this is a no-op.
   Future<void> toggleRemoteMonitor(bool value) async {
     if (!NetworkMonitoringRegistry.config.enabled) return;
+    if (value && !_isMonitoringEnabled) return;
     if (value == _isRemoteMonitorEnabled &&
         (value ? _remoteMonitorUrl != null : true)) {
       return;
@@ -169,18 +172,31 @@ class NetworkMonitorController {
   }
 
   Future<void> _stopRemoteMonitorInternal() async {
-    await _remoteMonitorServer.stop();
     _isRemoteMonitorEnabled = false;
     _remoteMonitorUrl = null;
     _remoteMonitorError = null;
+    await _remoteMonitorServer.stop();
   }
 
   /// Starts or stops HTTP capture. When `true`, also shows the overlay.
+  ///
+  /// Turning monitoring off also stops the remote monitor server.
   void toggleMonitoring(bool value) {
     if (!NetworkMonitoringRegistry.config.enabled) return;
     _isMonitoringEnabled = value;
     _isOverlayVisible = value;
-    _notifyAll({NetworkMonitorChange.monitoring, NetworkMonitorChange.overlay});
+    final changes = {
+      NetworkMonitorChange.monitoring,
+      NetworkMonitorChange.overlay,
+    };
+    if (!value &&
+        (_isRemoteMonitorEnabled ||
+            _remoteMonitorUrl != null ||
+            _remoteMonitorError != null)) {
+      unawaited(_stopRemoteMonitorInternal());
+      changes.add(NetworkMonitorChange.remoteMonitor);
+    }
+    _notifyAll(changes);
   }
 
   /// Shows or hides the floating button without changing monitoring state.
