@@ -44,6 +44,7 @@ const _kAppJs = r'''
     scopes: new Set(DEFAULT_SCOPES),
     showScopes: false,
     selectedId: null,
+    focusedId: null,
     record: null,
     tab: 0,
     detailQuery: '',
@@ -415,6 +416,7 @@ const _kAppJs = r'''
     const list = $('recordList');
     const empty = $('emptyState');
     list.innerHTML = '';
+    ensureFocusInList();
     if (!state.records.length) {
       empty.classList.remove('hidden');
       return;
@@ -428,7 +430,12 @@ const _kAppJs = r'''
   function renderCard(record) {
     const card = document.createElement('div');
     const selected = record.id === state.selectedId;
-    card.className = 'card' + (selected ? ' selected' : '') + (record.isPaused ? ' paused' : '');
+    const focused = record.id === state.focusedId;
+    card.dataset.id = record.id;
+    card.className = 'card'
+      + (selected ? ' selected' : '')
+      + (focused ? ' focused' : '')
+      + (record.isPaused ? ' paused' : '');
     const st = statusBadge(record);
     const actions = record.isPaused
       ? `<button class="action-btn edit" data-stop="edit" title="Edit">${svgIcon('edit')}</button>
@@ -446,7 +453,10 @@ const _kAppJs = r'''
         <span class="url">${escapeHtml(record.url)}</span>
         <span class="dur">${escapeHtml(record.formattedDuration || '-')}</span>
       </div>`;
-    card.onclick = () => openDetail(record.id);
+    card.onclick = () => {
+      state.focusedId = record.id;
+      openDetail(record.id);
+    };
     card.oncontextmenu = (e) => {
       e.preventDefault();
       showRecordMenu(e.clientX, e.clientY, record);
@@ -465,6 +475,132 @@ const _kAppJs = r'''
       };
     });
     return card;
+  }
+
+  function isEditableTarget(el) {
+    if (!el) return false;
+    const tag = (el.tagName || '').toLowerCase();
+    if (el.isContentEditable) return true;
+    if (tag === 'textarea') return true;
+    if (tag === 'input') {
+      const type = (el.type || 'text').toLowerCase();
+      return !['button', 'checkbox', 'radio', 'file', 'submit', 'reset'].includes(type);
+    }
+    return false;
+  }
+
+  function ensureFocusInList() {
+    if (!state.records.length) {
+      state.focusedId = null;
+      return;
+    }
+    if (state.focusedId && state.records.some((rec) => rec.id === state.focusedId)) return;
+    if (state.selectedId && state.records.some((rec) => rec.id === state.selectedId)) {
+      state.focusedId = state.selectedId;
+      return;
+    }
+    state.focusedId = state.records[0].id;
+  }
+
+  function focusedRecordIndex() {
+    return state.records.findIndex((rec) => rec.id === state.focusedId);
+  }
+
+  function scrollFocusedCard() {
+    const el = document.querySelector('#recordList .card.focused');
+    if (el) el.scrollIntoView({ block: 'nearest' });
+  }
+
+  function moveListFocus(delta) {
+    if (!state.records.length) return;
+    let index = focusedRecordIndex();
+    if (index < 0) index = delta > 0 ? -1 : state.records.length;
+    index = Math.max(0, Math.min(state.records.length - 1, index + delta));
+    state.focusedId = state.records[index].id;
+    renderList();
+    scrollFocusedCard();
+  }
+
+  function jumpListFocus(index) {
+    if (!state.records.length) return;
+    const clamped = Math.max(0, Math.min(state.records.length - 1, index));
+    state.focusedId = state.records[clamped].id;
+    renderList();
+    scrollFocusedCard();
+  }
+
+  function openFocusedRecord() {
+    ensureFocusInList();
+    if (state.focusedId) openDetail(state.focusedId);
+  }
+
+  function selectDetailTab(index) {
+    const count = TAB_LABELS.length;
+    const next = ((index % count) + count) % count;
+    if (next === state.tab) return;
+    state.tab = next;
+    if (state.followCurrentTab) state.matchCursor = 0;
+    updateMatches();
+    renderTabs();
+    renderDetail();
+  }
+
+  function moveDetailTab(delta) {
+    if (!state.selectedId) return;
+    selectDetailTab(state.tab + delta);
+  }
+
+  function handleListKeyboard(e) {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const overlay = $('modalOverlay');
+    if (overlay && !overlay.classList.contains('hidden')) return;
+
+    const target = e.target;
+    const inDetailSearch = target === $('detailSearchInput');
+    const inListSearch = target === $('searchInput');
+    const editing = isEditableTarget(target) && !inListSearch && !inDetailSearch;
+    if (editing) return;
+
+    if (inDetailSearch && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter')) {
+      if (!state.matches.length) return;
+      e.preventDefault();
+      if (e.key === 'Enter' || e.key === 'ArrowDown') goMatch(1);
+      else goMatch(-1);
+      return;
+    }
+
+    if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && state.selectedId && !inListSearch && !inDetailSearch) {
+      e.preventDefault();
+      moveDetailTab(e.key === 'ArrowRight' ? 1 : -1);
+      return;
+    }
+
+    if (!state.records.length) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      moveListFocus(1);
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      moveListFocus(-1);
+      return;
+    }
+    if (e.key === 'Home') {
+      e.preventDefault();
+      jumpListFocus(0);
+      return;
+    }
+    if (e.key === 'End') {
+      e.preventDefault();
+      jumpListFocus(state.records.length - 1);
+      return;
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      openFocusedRecord();
+    }
   }
 
   async function continuePaused(id, payload = {}) {
@@ -556,7 +692,9 @@ const _kAppJs = r'''
   }
 
   async function openDetail(id, initialQuery) {
+    const preserveTab = !!state.selectedId;
     state.selectedId = id;
+    state.focusedId = id;
     try {
       state.record = await api(`/api/records/${encodeURIComponent(id)}`);
     } catch {
@@ -564,7 +702,7 @@ const _kAppJs = r'''
       clearSelection();
       return;
     }
-    state.tab = 0;
+    if (!preserveTab) state.tab = 0;
     state.detailQuery = initialQuery || state.query || '';
     state.detailSearchVisible = !!state.detailQuery;
     state.matchCursor = 0;
@@ -575,7 +713,7 @@ const _kAppJs = r'''
     applyLayout();
     renderList();
     updateMatches();
-    if (state.matches.length) state.tab = state.matches[0].tab;
+    if (!preserveTab && state.matches.length) state.tab = state.matches[0].tab;
     renderTabs();
     renderDetail();
     renderDetailPauseActions();
@@ -635,13 +773,7 @@ const _kAppJs = r'''
     document.querySelectorAll('#detailTabs .tab').forEach((btn) => {
       const i = Number(btn.dataset.tab);
       btn.classList.toggle('active', i === state.tab);
-      btn.onclick = () => {
-        state.tab = i;
-        if (state.followCurrentTab) state.matchCursor = 0;
-        updateMatches();
-        renderTabs();
-        renderDetail();
-      };
+      btn.onclick = () => selectDetailTab(i);
     });
   }
 
@@ -1385,7 +1517,9 @@ const _kAppJs = r'''
       hideMenu();
       if (!$('modalOverlay').classList.contains('hidden')) closeModal();
       else if (isMobile() && state.selectedId) clearSelection();
+      return;
     }
+    handleListKeyboard(e);
   });
 
   initIcons();

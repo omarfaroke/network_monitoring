@@ -210,6 +210,10 @@ body {
   border-color: var(--primary);
   background: color-mix(in srgb, var(--primary) 10%, var(--field));
 }
+.card.focused {
+  outline: 2px solid var(--primary);
+  outline-offset: -1px;
+}
 .card.paused {
   border-color: color-mix(in srgb, var(--pending) 40%, var(--border));
   background: color-mix(in srgb, var(--pending) 8%, var(--field));
