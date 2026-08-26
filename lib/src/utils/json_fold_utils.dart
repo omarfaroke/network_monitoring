@@ -95,9 +95,22 @@ abstract final class JsonFoldUtils {
   static List<JsonFoldLine> visibleLines({
     required String content,
     required Set<int> collapsedStartLines,
+    List<String>? rawLines,
+    List<JsonFoldRange>? ranges,
   }) {
-    final rawLines = content.split('\n');
-    final byStart = rangeByStartLine(rangesFor(content));
+    return visibleLinesFrom(
+      rawLines: rawLines ?? content.split('\n'),
+      ranges: ranges ?? rangesFor(content),
+      collapsedStartLines: collapsedStartLines,
+    );
+  }
+
+  static List<JsonFoldLine> visibleLinesFrom({
+    required List<String> rawLines,
+    required List<JsonFoldRange> ranges,
+    required Set<int> collapsedStartLines,
+  }) {
+    final byStart = rangeByStartLine(ranges);
     final visible = <JsonFoldLine>[];
     var skipUntil = -1;
 

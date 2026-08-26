@@ -256,6 +256,8 @@ class NetworkMonitorResponseTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.nmL10n;
     final query = searchNavigation?.query;
+    final body = record.responseBodyFormatted;
+    final hasBody = body.isNotEmpty;
 
     return ListView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -263,14 +265,10 @@ class NetworkMonitorResponseTab extends StatelessWidget {
       children: [
         NmCodeBlock(
           title: l10n.responseBody,
-          content: record.responseBodyFormatted.isEmpty
-              ? l10n.noResponseBody
-              : record.responseBodyFormatted,
-          copyable: record.responseBodyFormatted.isNotEmpty,
+          content: hasBody ? body : l10n.noResponseBody,
+          copyable: hasBody,
           searchQuery: query,
-          searchBlockId: record.responseBodyFormatted.isNotEmpty
-              ? DetailSearchBlockIds.responseBody
-              : null,
+          searchBlockId: hasBody ? DetailSearchBlockIds.responseBody : null,
           searchNavigation: searchNavigation,
         ),
       ],

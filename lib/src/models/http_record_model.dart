@@ -32,6 +32,10 @@ class HttpRecordModel {
   Duration? duration;
 
   JwtDecodeResult? _jwtDecodeCache;
+  String? _requestBodyFormattedCache;
+  Object? _requestBodyFormattedKey;
+  String? _responseBodyFormattedCache;
+  Object? _responseBodyFormattedKey;
 
   HttpRecordModel({
     required this.id,
@@ -97,9 +101,25 @@ class HttpRecordModel {
   String get formattedResponsePayloadSize =>
       ByteSizeUtils.format(responsePayloadByteSize);
 
-  String get requestBodyFormatted => JsonFormatUtils.formatBody(requestBody);
+  String get requestBodyFormatted {
+    if (identical(_requestBodyFormattedKey, requestBody) &&
+        _requestBodyFormattedCache != null) {
+      return _requestBodyFormattedCache!;
+    }
+    _requestBodyFormattedKey = requestBody;
+    return _requestBodyFormattedCache = JsonFormatUtils.formatBody(requestBody);
+  }
 
-  String get responseBodyFormatted => JsonFormatUtils.formatBody(responseBody);
+  String get responseBodyFormatted {
+    if (identical(_responseBodyFormattedKey, responseBody) &&
+        _responseBodyFormattedCache != null) {
+      return _responseBodyFormattedCache!;
+    }
+    _responseBodyFormattedKey = responseBody;
+    return _responseBodyFormattedCache = JsonFormatUtils.formatBody(
+      responseBody,
+    );
+  }
 
   String get queryParametersFormatted =>
       JsonFormatUtils.formatMap(queryParameters);

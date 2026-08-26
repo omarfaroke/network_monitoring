@@ -301,6 +301,15 @@ body {
   display: flex; align-items: center; justify-content: space-between;
   gap: 8px; margin-bottom: 8px;
 }
+.block.sticky-head .block-head {
+  position: sticky;
+  top: -16px;
+  z-index: 5;
+  background: var(--field);
+  margin: -12px -12px 8px;
+  padding: 12px;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
 .block-title { font-size: 14px; font-weight: 700; }
 .block-actions { display: flex; gap: 8px; align-items: center; }
 .kv { display: grid; grid-template-columns: 120px 1fr auto; gap: 8px; font-size: 13px; margin-bottom: 8px; align-items: start; }
@@ -319,73 +328,137 @@ body {
 .code-body {
   background: var(--surface);
   border-radius: 8px;
-  overflow: auto;
+  overflow: hidden;
 }
 .code-view {
-  display: grid;
-  grid-template-columns: auto 16px 1fr;
-  column-gap: 8px;
+  --row-h: 18px;
+  display: flex;
+  align-items: flex-start;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
-  line-height: 1.5;
-  padding: 8px 8px 8px 4px;
-  min-width: min-content;
+  line-height: var(--row-h);
+  padding: 8px 0;
+  min-width: 0;
 }
-.code-line { display: contents; }
+.code-gutter {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  background: var(--surface);
+  padding: 0 4px 0 8px;
+}
+.code-gutter-pre,
+.code-plain {
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  font-size: inherit;
+  line-height: var(--row-h);
+  white-space: pre;
+  height: auto;
+  display: block;
+  background: transparent;
+}
+.code-gutter-pre {
+  color: var(--muted);
+  opacity: .75;
+  text-align: right;
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+}
+.fold-col {
+  position: relative;
+  flex: 0 0 18px;
+  width: 18px;
+  align-self: stretch;
+}
 .fold-btn {
+  appearance: none;
+  -webkit-appearance: none;
   border: none;
   background: transparent;
-  width: 16px;
-  height: 18px;
+  width: 18px;
+  height: var(--row-h);
+  margin: 0;
   padding: 0;
   cursor: pointer;
   color: var(--muted);
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  line-height: 0;
 }
-.fold-btn svg { width: 14px; height: 14px; fill: currentColor; }
-.fold-spacer { width: 16px; height: 18px; display: inline-block; }
-.ln {
-  color: var(--muted);
-  opacity: .75;
-  text-align: right;
-  user-select: none;
-  white-space: pre;
+.fold-btn.fold-abs {
+  position: absolute;
+  left: 0;
 }
-.code-text { white-space: pre; }
-.code-view.search {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
+.fold-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  display: block;
 }
-.code-view.search .gutter {
-  margin: 0;
-  color: var(--muted);
-  opacity: .75;
-  user-select: none;
-  text-align: right;
-  white-space: pre;
-  font-family: inherit;
-  font-size: inherit;
-  line-height: inherit;
-}
-.code-view.search .pre {
+.code-scroll {
   flex: 1;
-  white-space: pre;
-  word-break: normal;
+  min-width: 0;
+  overflow-x: auto;
+  padding-right: 8px;
+  padding-left: 4px;
 }
-table.json-table {
-  width: 100%; border-collapse: collapse; font-size: 12px;
+.code-plain mark.hl,
+.code-plain mark.hl.active {
+  line-height: inherit;
+  padding: 0 1px;
 }
-table.json-table th, table.json-table td {
-  border: 1px solid var(--border);
+.json-kv {
+  width: 100%;
+  background: var(--surface);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.json-kv-row {
+  border-bottom: 1px solid var(--border);
+}
+.json-kv-row:last-child { border-bottom: none; }
+.json-kv-head {
+  display: grid;
+  grid-template-columns: 18px minmax(72px, 2fr) minmax(0, 4fr) auto auto;
+  gap: 4px;
+  align-items: start;
   padding: 6px 8px;
-  text-align: left;
-  vertical-align: top;
+}
+.json-kv-toggle-spacer { width: 18px; height: 18px; display: inline-block; }
+.json-kv-key {
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 12px;
   word-break: break-word;
 }
-table.json-table th { background: var(--surface); color: var(--muted); width: 30%; }
+.json-kv-row[data-json-id] .json-kv-key { cursor: pointer; }
+.json-kv-val {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  word-break: break-word;
+}
+.json-kv-val.nested {
+  color: var(--muted);
+  font-style: italic;
+}
+.json-kv-head .icon-btn.tiny {
+  width: 24px;
+  height: 24px;
+}
+.json-kv-head .icon-btn.tiny svg { width: 14px; height: 14px; }
+.json-kv-nested {
+  margin: 0 8px 8px 16px;
+  padding: 6px;
+  background: var(--field);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.json-kv-nested .json-kv {
+  background: var(--surface);
+}
 mark.hl {
   background: #fde68a;
   color: #000;

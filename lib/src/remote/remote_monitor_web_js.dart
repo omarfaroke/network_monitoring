@@ -36,8 +36,8 @@ const _kAppJs = r'''
     send: 'M2.01 21L23 12 2.01 3 2 10l15 2-15 2z',
     cancel: 'M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z',
     swap_horiz: 'M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z',
-    chevron_right: 'M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z',
-    expand_more: 'M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z',
+    arrow_right: 'M10 17l5-5-5-5v10z',
+    arrow_drop_down: 'M7 10l5 5 5-5z',
     unfold_more: 'M12 5.83L15.17 9l1.41-1.41L12 3 7.41 7.59 8.83 9 12 5.83zm0 12.34L8.83 15l-1.41 1.41L12 21l4.59-4.59L15.17 15 12 18.17z',
   };
 
@@ -71,6 +71,8 @@ const _kAppJs = r'''
   };
   const codeStore = new Map();
   let codeStoreSeq = 0;
+  const jsonTableStore = new Map();
+  let jsonTableSeq = 0;
 
   const $ = (id) => document.getElementById(id);
   const toastEl = $('toast');
@@ -950,26 +952,33 @@ const _kAppJs = r'''
 
   function renderGutterCode(content, { query = '', offset = 0, active = -1, collapsed = new Set() } = {}) {
     const src = content == null ? '' : String(content);
-    if (query) {
-      const lines = src.split('\n');
-      const width = String(lines.length || 1).length;
-      const numbers = lines.map((_, i) => String(i + 1).padStart(width, ' ')).join('\n');
-      return `<div class="code-view search">
-        <pre class="gutter">${escapeHtml(numbers)}</pre>
-        <pre class="pre">${highlight(src, query, offset, active)}</pre>
-      </div>`;
-    }
-    const lines = visibleFoldLines(src, collapsed);
+    const lines = query
+      ? src.split('\n').map((text, i) => ({ number: i + 1, text, range: null, collapsed: false }))
+      : visibleFoldLines(src, collapsed);
     const width = String(lines[lines.length - 1]?.number || 1).length;
-    let html = '<div class="code-view">';
-    for (const line of lines) {
-      const foldBtn = line.range
-        ? `<button class="fold-btn" data-fold="${line.range.startLine}" title="${line.collapsed ? 'Expand' : 'Collapse'}">${svgIcon(line.collapsed ? 'chevron_right' : 'expand_more')}</button>`
-        : '<span class="fold-spacer"></span>';
-      html += `<div class="code-line"><span class="ln">${escapeHtml(String(line.number).padStart(width, ' '))}</span>${foldBtn}<span class="code-text">${escapeHtml(line.text || ' ')}</span></div>`;
+    const pad = (n) => String(n).padStart(width, ' ');
+    const numbers = lines.map((line) => pad(line.number)).join('\n');
+    const code = query
+      ? highlight(src, query, offset, active)
+      : escapeHtml(lines.map((line) => line.text || ' ').join('\n'));
+    const showFold = !query && lines.some((line) => line.range);
+    let foldCol = '';
+    if (showFold) {
+      let buttons = '';
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line.range) continue;
+        buttons += `<button class="fold-btn fold-abs" style="top:calc(var(--row-h) * ${i})" data-fold="${line.range.startLine}" title="${line.collapsed ? 'Expand' : 'Collapse'}">${svgIcon(line.collapsed ? 'arrow_right' : 'arrow_drop_down')}</button>`;
+      }
+      foldCol = `<div class="fold-col">${buttons}</div>`;
     }
-    html += '</div>';
-    return html;
+    return `<div class="code-view">
+      <div class="code-gutter">
+        <pre class="code-gutter-pre">${escapeHtml(numbers)}</pre>
+        ${foldCol}
+      </div>
+      <div class="code-scroll"><pre class="code-plain">${code}</pre></div>
+    </div>`;
   }
 
   function codeBlock(title, content, blockId) {
@@ -982,7 +991,12 @@ const _kAppJs = r'''
     const active = state.matches[state.matchCursor]?.globalIndex ?? -1;
     const token = `c${++codeStoreSeq}`;
     codeStore.set(token, src);
-    return `<div class="block" data-code-block="${escapeHtml(viewId)}" data-content-key="${token}" data-can-table="${canTable ? '1' : '0'}" data-can-fold="${canFold ? '1' : '0'}">
+    const stickyHead = blockId === 'requestBody'
+      || blockId === 'responseBody'
+      || blockId === 'overviewRequestBody'
+      || title === 'Request Body'
+      || title === 'Response Body';
+    return `<div class="block${stickyHead ? ' sticky-head' : ''}" data-code-block="${escapeHtml(viewId)}" data-content-key="${token}" data-can-table="${canTable ? '1' : '0'}" data-can-fold="${canFold ? '1' : '0'}">
       <div class="block-head">
         <div class="block-title">${escapeHtml(title)}</div>
         <div class="block-actions">
@@ -1004,41 +1018,147 @@ const _kAppJs = r'''
     } catch { return false; }
   }
 
-  function renderJsonTable(value) {
-    if (Array.isArray(value)) {
-      if (!value.length) return '<p class="muted">Empty list</p>';
-      if (value.every((x) => x && typeof x === 'object' && !Array.isArray(x))) {
-        const keys = [...new Set(value.flatMap((row) => Object.keys(row)))];
-        let html = '<table class="json-table"><thead><tr>';
-        for (const k of keys) html += `<th>${escapeHtml(k)}</th>`;
-        html += '</tr></thead><tbody>';
-        for (const row of value) {
-          html += '<tr>';
-          for (const k of keys) {
-            const cell = row[k];
-            html += `<td>${escapeHtml(cell == null ? '' : typeof cell === 'object' ? JSON.stringify(cell) : String(cell))}</td>`;
-          }
-          html += '</tr>';
-        }
-        html += '</tbody></table>';
-        return html;
-      }
-      let html = '<table class="json-table"><thead><tr><th>#</th><th>Value</th></tr></thead><tbody>';
-      value.forEach((v, i) => {
-        html += `<tr><td>${i}</td><td>${escapeHtml(typeof v === 'object' ? JSON.stringify(v) : String(v))}</td></tr>`;
-      });
-      html += '</tbody></table>';
-      return html;
+  function isPlainObject(value) {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  function jsonTableSummary(value) {
+    if (value === null) return 'null';
+    if (Array.isArray(value)) return `[${value.length} items]`;
+    if (isPlainObject(value)) return `{${Object.keys(value).length} keys}`;
+    return String(value);
+  }
+
+  function storeJsonTableValue(value) {
+    const id = `j${++jsonTableSeq}`;
+    jsonTableStore.set(id, value);
+    return id;
+  }
+
+  function renderJsonTable(value, depth = 0) {
+    if (depth === 0) {
+      jsonTableStore.clear();
+      jsonTableSeq = 0;
     }
-    if (value && typeof value === 'object') {
-      let html = '<table class="json-table"><tbody>';
-      for (const [k, v] of Object.entries(value)) {
-        html += `<tr><th>${escapeHtml(k)}</th><td>${escapeHtml(typeof v === 'object' ? JSON.stringify(v, null, 2) : String(v))}</td></tr>`;
-      }
-      html += '</tbody></table>';
-      return html;
-    }
+    if (Array.isArray(value)) return renderJsonKvTable(value.map((item, i) => [`[${i}]`, item]), depth);
+    if (isPlainObject(value)) return renderJsonKvTable(Object.entries(value), depth);
     return `<pre class="pre">${escapeHtml(String(value))}</pre>`;
+  }
+
+  function renderJsonKvTable(entries, depth) {
+    if (!entries.length) return '<p class="muted">Empty</p>';
+    let html = '<div class="json-kv">';
+    for (const [key, value] of entries) html += renderJsonKvRow(key, value, depth);
+    html += '</div>';
+    return html;
+  }
+
+  function renderJsonKvRow(key, value, depth) {
+    const nested = isPlainObject(value) || Array.isArray(value);
+    const isObjectLike = isPlainObject(value) || Array.isArray(value);
+    const summary = jsonTableSummary(value);
+    const copyBtn = nested
+      ? `<button type="button" class="icon-btn tiny json-kv-copy" title="Copy">${svgIcon('copy')}</button>`
+      : `<button type="button" class="icon-btn tiny json-kv-copy" data-copy="${encodeAttr(value == null ? 'null' : String(value))}" title="Copy">${svgIcon('copy')}</button>`;
+    if (!nested) {
+      return `<div class="json-kv-row">
+        <div class="json-kv-head">
+          <span class="json-kv-toggle-spacer"></span>
+          <span class="json-kv-key">${escapeHtml(String(key))}</span>
+          <span class="json-kv-val${isObjectLike ? ' nested' : ''}">${escapeHtml(summary)}</span>
+          ${copyBtn}
+        </div>
+      </div>`;
+    }
+    const id = storeJsonTableValue(value);
+    return `<div class="json-kv-row" data-json-id="${id}" data-depth="${depth}" data-mode="table">
+      <div class="json-kv-head">
+        <button type="button" class="fold-btn json-kv-toggle" title="Expand">${svgIcon('arrow_right')}</button>
+        <span class="json-kv-key">${escapeHtml(String(key))}</span>
+        <span class="json-kv-val nested">${escapeHtml(summary)}</span>
+        <button type="button" class="icon-btn tiny json-kv-mode hidden" title="Raw JSON">${svgIcon('code')}</button>
+        ${copyBtn}
+      </div>
+      <div class="json-kv-nested hidden"></div>
+    </div>`;
+  }
+
+  function jsonKvChild(row, selector) {
+    return row.querySelector(`:scope > ${selector}`);
+  }
+
+  function renderJsonKvNested(row) {
+    const nested = jsonKvChild(row, '.json-kv-nested');
+    const modeBtn = row.querySelector(':scope > .json-kv-head .json-kv-mode');
+    const value = jsonTableStore.get(row.getAttribute('data-json-id'));
+    const depth = Number(row.getAttribute('data-depth') || 0);
+    if (!nested) return;
+    if (row.dataset.mode === 'raw') {
+      nested.innerHTML = `<pre class="pre">${escapeHtml(JSON.stringify(value, null, 2))}</pre>`;
+      if (modeBtn) {
+        modeBtn.title = 'Table';
+        modeBtn.innerHTML = svgIcon('table_rows');
+        modeBtn.classList.add('active');
+      }
+      return;
+    }
+    nested.innerHTML = renderJsonTable(value, depth + 1);
+    if (modeBtn) {
+      modeBtn.title = 'Raw JSON';
+      modeBtn.innerHTML = svgIcon('code');
+      modeBtn.classList.remove('active');
+    }
+  }
+
+  function toggleJsonKvExpand(row) {
+    const nested = jsonKvChild(row, '.json-kv-nested');
+    const toggle = row.querySelector(':scope > .json-kv-head .json-kv-toggle');
+    const modeBtn = row.querySelector(':scope > .json-kv-head .json-kv-mode');
+    if (!nested) return;
+    const open = nested.classList.contains('hidden');
+    nested.classList.toggle('hidden', !open);
+    modeBtn?.classList.toggle('hidden', !open);
+    if (toggle) {
+      toggle.innerHTML = svgIcon(open ? 'arrow_drop_down' : 'arrow_right');
+      toggle.title = open ? 'Collapse' : 'Expand';
+    }
+    if (open) renderJsonKvNested(row);
+    else nested.innerHTML = '';
+  }
+
+  function bindJsonTable(root) {
+    root.onclick = (e) => {
+      const copyBtn = e.target.closest('.json-kv-copy');
+      if (copyBtn && root.contains(copyBtn)) {
+        e.preventDefault();
+        e.stopPropagation();
+        const row = copyBtn.closest('.json-kv-row');
+        const id = row?.getAttribute('data-json-id');
+        if (id && jsonTableStore.has(id)) {
+          copyText(JSON.stringify(jsonTableStore.get(id), null, 2), 'Copied');
+        } else {
+          const text = decodeURIComponent(copyBtn.getAttribute('data-copy') || '');
+          if (text) copyText(text, 'Copied');
+        }
+        return;
+      }
+      const modeBtn = e.target.closest('.json-kv-mode');
+      if (modeBtn && root.contains(modeBtn)) {
+        e.preventDefault();
+        e.stopPropagation();
+        const row = modeBtn.closest('.json-kv-row');
+        if (!row) return;
+        row.dataset.mode = row.dataset.mode === 'raw' ? 'table' : 'raw';
+        renderJsonKvNested(row);
+        return;
+      }
+      const toggle = e.target.closest('.json-kv-toggle, .json-kv-key');
+      if (!toggle || !root.contains(toggle)) return;
+      const row = toggle.closest('.json-kv-row');
+      if (!row?.hasAttribute('data-json-id')) return;
+      e.preventDefault();
+      toggleJsonKvExpand(row);
+    };
   }
 
   function renderDetail() {
@@ -1152,7 +1272,10 @@ const _kAppJs = r'''
           tableBtn.title = tableView ? 'Raw JSON' : 'Table';
           tableBtn.innerHTML = svgIcon(tableView ? 'code' : 'table_rows');
           if (tableView) {
-            try { bodyEl.innerHTML = renderJsonTable(JSON.parse(content)); }
+            try {
+              bodyEl.innerHTML = renderJsonTable(JSON.parse(content));
+              bindJsonTable(bodyEl);
+            }
             catch { renderRaw(); }
           } else {
             renderRaw();
