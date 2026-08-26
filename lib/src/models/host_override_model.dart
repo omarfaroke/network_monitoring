@@ -50,21 +50,17 @@ class HostOverrideModel {
     if (to == null) return uri;
 
     final scheme = to.scheme ?? uri.scheme;
-    final host = to.host;
-    if (to.port != null) {
-      return uri.replace(scheme: scheme, host: host, port: to.port);
-    }
-    if (to.scheme != null && to.scheme != uri.scheme) {
-      return Uri(
-        scheme: scheme,
-        userInfo: uri.userInfo,
-        host: host,
-        path: uri.path.isEmpty ? '' : uri.path,
-        query: uri.hasQuery ? uri.query : null,
-        fragment: uri.hasFragment ? uri.fragment : null,
-      );
-    }
-    return uri.replace(host: host);
+    // Always apply the replacement origin. An omitted port uses the scheme
+    // default instead of keeping the original host's port.
+    return Uri(
+      scheme: scheme,
+      userInfo: uri.userInfo,
+      host: to.host,
+      port: to.port,
+      path: uri.path,
+      query: uri.hasQuery ? uri.query : null,
+      fragment: uri.hasFragment ? uri.fragment : null,
+    );
   }
 
   Map<String, dynamic> toJson({int? index}) {
