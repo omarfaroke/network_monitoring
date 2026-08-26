@@ -63,6 +63,12 @@ class DetailSearchMatchInfo {
         blockId: DetailSearchBlockIds.overviewUrl,
         text: record.url,
       ),
+      if (record.originalUrl != null && record.originalUrl != record.url)
+        DetailSearchBlock(
+          tabIndex: 0,
+          blockId: DetailSearchBlockIds.overviewOriginalUrl,
+          text: record.originalUrl!,
+        ),
       DetailSearchBlock(
         tabIndex: 0,
         blockId: DetailSearchBlockIds.overviewMethod,
@@ -88,6 +94,23 @@ class DetailSearchMatchInfo {
           tabIndex: 0,
           blockId: DetailSearchBlockIds.overviewToken,
           text: record.authToken!,
+        ),
+      if (record.queryParameters != null && record.queryParameters!.isNotEmpty)
+        DetailSearchBlock(
+          tabIndex: 0,
+          blockId: DetailSearchBlockIds.overviewQuery,
+          text: record.queryParametersFormatted,
+        ),
+      DetailSearchBlock(
+        tabIndex: 0,
+        blockId: DetailSearchBlockIds.overviewRequestHeaders,
+        text: record.requestHeadersFormatted,
+      ),
+      if (record.requestBodyFormatted.isNotEmpty)
+        DetailSearchBlock(
+          tabIndex: 0,
+          blockId: DetailSearchBlockIds.overviewRequestBody,
+          text: record.requestBodyFormatted,
         ),
       if (record.queryParameters != null && record.queryParameters!.isNotEmpty)
         DetailSearchBlock(
@@ -155,10 +178,14 @@ class DetailSearchMatchInfo {
 /// Stable ids for searchable detail blocks.
 abstract final class DetailSearchBlockIds {
   static const overviewUrl = 'overview.url';
+  static const overviewOriginalUrl = 'overview.originalUrl';
   static const overviewMethod = 'overview.method';
   static const overviewStatus = 'overview.status';
   static const overviewError = 'overview.error';
   static const overviewToken = 'overview.token';
+  static const overviewQuery = 'overview.query';
+  static const overviewRequestHeaders = 'overview.requestHeaders';
+  static const overviewRequestBody = 'overview.requestBody';
   static const requestQuery = 'request.query';
   static const requestBody = 'request.body';
   static const responseBody = 'response.body';

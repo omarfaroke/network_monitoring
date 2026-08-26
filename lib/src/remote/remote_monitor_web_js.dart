@@ -35,6 +35,10 @@ const _kAppJs = r'''
     skip_next: 'M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z',
     send: 'M2.01 21L23 12 2.01 3 2 10l15 2-15 2z',
     cancel: 'M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z',
+    swap_horiz: 'M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z',
+    chevron_right: 'M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z',
+    expand_more: 'M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z',
+    unfold_more: 'M12 5.83L15.17 9l1.41-1.41L12 3 7.41 7.59 8.83 9 12 5.83zm0 12.34L8.83 15l-1.41 1.41L12 21l4.59-4.59L15.17 15 12 18.17z',
   };
 
   const state = {
@@ -58,6 +62,7 @@ const _kAppJs = r'''
     activeBreakpointCount: 0,
     hasEnabledAllEndpointsBreakpoint: false,
     breakpoints: [],
+    hostOverrides: [],
     total: 0,
     filtered: 0,
     openModalKind: null,
@@ -228,10 +233,14 @@ const _kAppJs = r'''
     if (!q || !record) return matches;
     const blocks = [
       { tab: 0, id: 'overviewUrl', text: record.url || '' },
+      { tab: 0, id: 'overviewOriginalUrl', text: record.originalUrl || '' },
       { tab: 0, id: 'overviewMethod', text: record.method || '' },
       { tab: 0, id: 'overviewStatus', text: `${record.statusCode ?? ''} ${record.statusMessage ?? ''}`.trim() },
       { tab: 0, id: 'overviewError', text: record.errorMessage || '' },
       { tab: 0, id: 'overviewToken', text: record.authToken || '' },
+      { tab: 0, id: 'overviewQuery', text: record.queryParametersFormatted || '' },
+      { tab: 0, id: 'overviewRequestHeaders', text: record.requestHeadersFormatted || '' },
+      { tab: 0, id: 'overviewRequestBody', text: record.requestBodyFormatted || '' },
       { tab: 1, id: 'requestQuery', text: record.queryParametersFormatted || '' },
       { tab: 1, id: 'requestBody', text: record.requestBodyFormatted || '' },
       { tab: 2, id: 'responseBody', text: record.responseBodyFormatted || '' },
@@ -268,6 +277,9 @@ const _kAppJs = r'''
     }
     if (Array.isArray(data.breakpoints)) {
       state.breakpoints = data.breakpoints;
+    }
+    if (Array.isArray(data.hostOverrides)) {
+      state.hostOverrides = data.hostOverrides;
     }
     if (typeof data.total === 'number') state.total = data.total;
     if (typeof data.filtered === 'number' && !Array.isArray(data.records)) {
@@ -324,6 +336,15 @@ const _kAppJs = r'''
     }
     $('bpsBtn').classList.toggle('active', state.breakpoints.length > 0);
 
+    const hoCount = $('hoCount');
+    if (state.hostOverrides.length) {
+      hoCount.textContent = String(state.hostOverrides.length);
+      hoCount.classList.remove('hidden');
+    } else {
+      hoCount.classList.add('hidden');
+    }
+    $('hosBtn').classList.toggle('active', state.hostOverrides.length > 0);
+
     const scopesActive = state.scopes.size !== DEFAULT_SCOPES.size ||
       ![...DEFAULT_SCOPES].every((s) => state.scopes.has(s));
     $('scopesToggle').classList.toggle('active', state.showScopes || scopesActive);
@@ -340,6 +361,10 @@ const _kAppJs = r'''
       html += `<div class="hint-bar pause">${svgIcon('pause')}<span class="hint-text">All requests are paused. Tap resume to continue sending traffic.</span><button class="link" data-hint="resume">Resume all requests</button></div>`;
     } else if (state.hasEnabledAllEndpointsBreakpoint) {
       html += `<div class="hint-bar all-ep">${svgIcon('rule')}<span class="hint-text">Breakpoint active for all endpoints. Matching requests will pause.</span></div>`;
+    }
+    const enabledOverrides = (state.hostOverrides || []).filter((rule) => rule.isEnabled).length;
+    if (enabledOverrides) {
+      html += `<div class="hint-bar all-ep">${svgIcon('swap_horiz')}<span class="hint-text">${enabledOverrides} host override(s) active. Matching requests will be rewritten.</span></div>`;
     }
     if (state.activeBreakpointCount > 0) {
       html += `<div class="hint-bar active-bp">${svgIcon('pause_circle_filled')}<span class="hint-text">${state.activeBreakpointCount} request(s) paused</span><button class="link" data-hint="continue-all">Continue All</button></div>`;
@@ -450,7 +475,12 @@ const _kAppJs = r'''
         <span class="card-actions">${actions}</span>
       </div>
       <div class="url-line">
-        <span class="url">${escapeHtml(record.url)}</span>
+        <div class="url">
+          ${escapeHtml(record.url)}
+          ${record.originalUrl && record.originalUrl !== record.url
+            ? `<span class="url original">${escapeHtml(record.originalUrl)}</span>`
+            : ''}
+        </div>
         <span class="dur">${escapeHtml(record.formattedDuration || '-')}</span>
       </div>`;
     card.onclick = () => {
@@ -679,6 +709,15 @@ const _kAppJs = r'''
         onSelect: () => handleCardAction('toggle-bp', record),
       },
       { icon: 'tune', label: 'Add Breakpoint (custom)...', onSelect: () => openAddBreakpoint(record.path) },
+      {
+        icon: 'swap_horiz',
+        label: 'Override host (this request)...',
+        onSelect: () => {
+          let host = '';
+          try { host = new URL(record.url).host; } catch (_) {}
+          openAddHostOverride({ fromHost: host, urlPattern: record.path });
+        },
+      },
       { icon: 'copy', label: 'Copy URL', onSelect: () => copyText(record.url, 'URL copied') },
     ]);
   }
@@ -843,26 +882,116 @@ const _kAppJs = r'''
     return html;
   }
 
+  function jsonFoldRanges(content) {
+    const ranges = [];
+    const stack = [];
+    let line = 0;
+    let inString = false;
+    let escape = false;
+    for (let i = 0; i < content.length; i++) {
+      const c = content[i];
+      if (c === '\n') { line += 1; escape = false; continue; }
+      if (inString) {
+        if (escape) escape = false;
+        else if (c === '\\') escape = true;
+        else if (c === '"') inString = false;
+        continue;
+      }
+      if (c === '"') { inString = true; continue; }
+      if (c === '{' || c === '[') stack.push({ line, ch: c });
+      else if (c === '}' || c === ']') {
+        if (!stack.length) continue;
+        const open = stack.pop();
+        const expected = c === '}' ? '{' : '[';
+        if (open.ch !== expected) continue;
+        if (line > open.line) ranges.push({ startLine: open.line, endLine: line, openChar: open.ch });
+      }
+    }
+    return ranges;
+  }
+
+  function lastUnquoted(line, needle) {
+    let inString = false, escape = false, last = -1;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (inString) {
+        if (escape) escape = false;
+        else if (c === '\\') escape = true;
+        else if (c === '"') inString = false;
+        continue;
+      }
+      if (c === '"') { inString = true; continue; }
+      if (c === needle) last = i;
+    }
+    return last;
+  }
+
+  function visibleFoldLines(content, collapsed) {
+    const raw = String(content).split('\n');
+    const byStart = {};
+    for (const range of jsonFoldRanges(content)) byStart[range.startLine] = range;
+    const visible = [];
+    let skipUntil = -1;
+    for (let i = 0; i < raw.length; i++) {
+      if (i <= skipUntil) continue;
+      const range = byStart[i];
+      const isCollapsed = !!(range && collapsed.has(range.startLine));
+      let text = raw[i];
+      if (isCollapsed) {
+        const preview = range.openChar === '[' ? '[ ... ]' : '{ ... }';
+        const idx = lastUnquoted(text, range.openChar);
+        text = idx < 0 ? `${text} ${preview}` : text.slice(0, idx) + preview;
+        skipUntil = range.endLine;
+      }
+      visible.push({ number: i + 1, text, range: range || null, collapsed: isCollapsed });
+    }
+    return visible;
+  }
+
+  function renderGutterCode(content, { query = '', offset = 0, active = -1, collapsed = new Set() } = {}) {
+    const src = content == null ? '' : String(content);
+    if (query) {
+      const lines = src.split('\n');
+      const width = String(lines.length || 1).length;
+      const numbers = lines.map((_, i) => String(i + 1).padStart(width, ' ')).join('\n');
+      return `<div class="code-view search">
+        <pre class="gutter">${escapeHtml(numbers)}</pre>
+        <pre class="pre">${highlight(src, query, offset, active)}</pre>
+      </div>`;
+    }
+    const lines = visibleFoldLines(src, collapsed);
+    const width = String(lines[lines.length - 1]?.number || 1).length;
+    let html = '<div class="code-view">';
+    for (const line of lines) {
+      const foldBtn = line.range
+        ? `<button class="fold-btn" data-fold="${line.range.startLine}" title="${line.collapsed ? 'Expand' : 'Collapse'}">${svgIcon(line.collapsed ? 'chevron_right' : 'expand_more')}</button>`
+        : '<span class="fold-spacer"></span>';
+      html += `<div class="code-line"><span class="ln">${escapeHtml(String(line.number).padStart(width, ' '))}</span>${foldBtn}<span class="code-text">${escapeHtml(line.text || ' ')}</span></div>`;
+    }
+    html += '</div>';
+    return html;
+  }
+
   function codeBlock(title, content, blockId) {
     const q = state.detailQuery.trim();
-    const canTable = !q && looksLikeJson(content);
+    const src = content == null ? '' : String(content);
+    const canTable = !q && looksLikeJson(src);
+    const canFold = !q && jsonFoldRanges(src).length > 0;
     const viewId = `view-${blockId || title}`;
     const offset = blockId ? matchOffset(blockId) : 0;
     const active = state.matches[state.matchCursor]?.globalIndex ?? -1;
     const token = `c${++codeStoreSeq}`;
-    codeStore.set(token, content);
-    const body = q
-      ? `<pre class="pre">${highlight(content, q, offset, active)}</pre>`
-      : `<pre class="pre">${escapeHtml(content)}</pre>`;
-    return `<div class="block" data-code-block="${escapeHtml(viewId)}" data-content-key="${token}" data-can-table="${canTable ? '1' : '0'}">
+    codeStore.set(token, src);
+    return `<div class="block" data-code-block="${escapeHtml(viewId)}" data-content-key="${token}" data-can-table="${canTable ? '1' : '0'}" data-can-fold="${canFold ? '1' : '0'}">
       <div class="block-head">
         <div class="block-title">${escapeHtml(title)}</div>
         <div class="block-actions">
+          ${canFold ? `<button class="icon-btn tiny toggle-fold-all" title="Collapse all">${svgIcon('unfold_more')}</button>` : ''}
           ${canTable ? `<button class="icon-btn tiny view-table" title="Table">${svgIcon('table_rows')}</button>` : ''}
           <button class="icon-btn tiny copy-btn" title="Copy">${svgIcon('copy')}</button>
         </div>
       </div>
-      <div class="code-body">${body}</div>
+      <div class="code-body">${renderGutterCode(src, { query: q, offset, active })}</div>
     </div>`;
   }
 
@@ -923,6 +1052,9 @@ const _kAppJs = r'''
     if (state.tab === 0) {
       html += infoBlock('General', [
         { label: 'URL', value: record.url || '', copyable: true, blockId: 'overviewUrl' },
+        ...(record.originalUrl && record.originalUrl !== record.url
+          ? [{ label: 'Original URL', value: record.originalUrl, copyable: true, blockId: 'overviewOriginalUrl' }]
+          : []),
         { label: 'Method', value: record.method || '', blockId: 'overviewMethod' },
         { label: 'Status', value: `${record.statusCode ?? 'Pending'} ${record.statusMessage ?? ''}`.trim(), blockId: 'overviewStatus' },
         { label: 'Duration', value: record.formattedDuration || '-' },
@@ -959,6 +1091,11 @@ const _kAppJs = r'''
           html += `<div class="block"><p class="muted">This token looks like a JWT but the header or payload could not be decoded.</p></div>`;
         }
       }
+      if (record.queryParametersFormatted) {
+        html += codeBlock('Query Parameters', record.queryParametersFormatted, 'overviewQuery');
+      }
+      html += codeBlock('Request Headers', record.requestHeadersFormatted || '', 'overviewRequestHeaders');
+      html += codeBlock('Request Body', record.requestBodyFormatted || 'No request body', record.requestBodyFormatted ? 'overviewRequestBody' : null);
     } else if (state.tab === 1) {
       if (record.queryParametersFormatted) {
         html += codeBlock('Query Parameters', record.queryParametersFormatted, 'requestQuery');
@@ -981,8 +1118,33 @@ const _kAppJs = r'''
       const content = codeStore.get(block.getAttribute('data-content-key')) || '';
       const bodyEl = block.querySelector('.code-body');
       const tableBtn = block.querySelector('.view-table');
+      const collapsed = new Set();
       let tableView = false;
+      const renderRaw = () => {
+        bodyEl.innerHTML = renderGutterCode(content, { collapsed });
+        bodyEl.querySelectorAll('[data-fold]').forEach((btn) => {
+          btn.onclick = (e) => {
+            e.stopPropagation();
+            const start = Number(btn.getAttribute('data-fold'));
+            if (collapsed.has(start)) collapsed.delete(start);
+            else collapsed.add(start);
+            renderRaw();
+          };
+        });
+      };
       block.querySelector('.copy-btn')?.addEventListener('click', () => copyText(content, `Copied ${block.querySelector('.block-title')?.textContent || ''}`));
+      block.querySelector('.toggle-fold-all')?.addEventListener('click', () => {
+        const ranges = jsonFoldRanges(content);
+        const allCollapsed = ranges.length > 0 && ranges.every((range) => collapsed.has(range.startLine));
+        collapsed.clear();
+        if (!allCollapsed) {
+          ranges.forEach((range) => collapsed.add(range.startLine));
+        }
+        const btn = block.querySelector('.toggle-fold-all');
+        if (btn) btn.title = allCollapsed ? 'Collapse all' : 'Expand all';
+        renderRaw();
+      });
+      if (!state.detailQuery.trim()) renderRaw();
       if (tableBtn && bodyEl) {
         tableBtn.onclick = () => {
           tableView = !tableView;
@@ -991,9 +1153,9 @@ const _kAppJs = r'''
           tableBtn.innerHTML = svgIcon(tableView ? 'code' : 'table_rows');
           if (tableView) {
             try { bodyEl.innerHTML = renderJsonTable(JSON.parse(content)); }
-            catch { bodyEl.innerHTML = `<pre class="pre">${escapeHtml(content)}</pre>`; }
+            catch { renderRaw(); }
           } else {
-            bodyEl.innerHTML = `<pre class="pre">${escapeHtml(content)}</pre>`;
+            renderRaw();
           }
         };
       }
@@ -1179,8 +1341,11 @@ const _kAppJs = r'''
         applyLiveRecords(data.records, data.total);
       }
       applyMonitorState(data);
-      if (data.type === 'breakpoints' && state.openModalKind === 'breakpoints') {
+      if (state.openModalKind === 'breakpoints') {
         openAppliedBreakpoints();
+      }
+      if (state.openModalKind === 'hostOverrides') {
+        openAppliedHostOverrides();
       }
     } catch (_) {}
   }
@@ -1272,6 +1437,86 @@ const _kAppJs = r'''
     });
   }
 
+  function openAddHostOverride({ fromHost = '', urlPattern = '' } = {}) {
+    state.openModalKind = 'addHost';
+    const specific = !!(urlPattern && urlPattern.length);
+    const modal = openModal(`
+      <div class="modal-head"><h3>Add Host Override</h3><button class="icon-btn" data-close title="Close">${svgIcon('close')}</button></div>
+      <div class="modal-body">
+        <label class="group-title">From host</label>
+        <input id="hoFrom" type="text" placeholder="e.g. api.example.com (empty = any host)" value="${escapeHtml(fromHost || '')}" />
+        <label class="group-title">Replace with</label>
+        <input id="hoTo" type="text" placeholder="e.g. staging.example.com or http://192.168.1.10:8080" />
+        <label class="group-title">Target</label>
+        <label class="radio-row"><input type="radio" name="ho-target" value="allEndpoints" ${specific ? '' : 'checked'}> All matching requests</label>
+        <label class="radio-row"><input type="radio" name="ho-target" value="specificEndpoint" ${specific ? 'checked' : ''}> Specific request</label>
+        <div id="hoPatternWrap" class="${specific ? '' : 'hidden'}">
+          <input id="hoPattern" type="text" placeholder="e.g. /api/login or /users" value="${escapeHtml(urlPattern || '')}" />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="text-btn" data-close>Cancel</button>
+        <button class="text-btn primary" id="hoAddConfirm">Add</button>
+      </div>
+    `);
+    const wrap = modal.querySelector('#hoPatternWrap');
+    modal.querySelectorAll('[name="ho-target"]').forEach((el) => {
+      el.onchange = () => wrap.classList.toggle('hidden', el.value !== 'specificEndpoint' || !el.checked);
+    });
+    modal.querySelectorAll('[data-close]').forEach((el) => { el.onclick = closeModal; });
+    modal.querySelector('#hoAddConfirm').onclick = async () => {
+      const toHost = modal.querySelector('#hoTo').value.trim();
+      if (!toHost) {
+        toast('Replacement host is required');
+        return;
+      }
+      const target = modal.querySelector('[name="ho-target"]:checked').value;
+      await api('/api/host-overrides', {
+        method: 'POST',
+        body: {
+          fromHost: modal.querySelector('#hoFrom').value.trim(),
+          toHost,
+          target,
+          urlPattern: modal.querySelector('#hoPattern').value,
+        },
+      });
+      closeModal();
+      loadRecords();
+    };
+  }
+
+  function openAppliedHostOverrides() {
+    state.openModalKind = 'hostOverrides';
+    const items = state.hostOverrides.length
+      ? state.hostOverrides.map((rule) => `
+          <div class="bp-item" data-index="${rule.index}">
+            <div class="bp-meta">
+              <div class="bp-title">${escapeHtml((rule.fromHost || 'Any host') + ' → ' + (rule.toHost || ''))}</div>
+              <div class="muted">${escapeHtml(rule.target === 'allEndpoints' ? 'All matching requests' : (rule.urlPattern || 'Unknown'))}</div>
+            </div>
+            <label class="switch"><input type="checkbox" ${rule.isEnabled ? 'checked' : ''}><span class="slider"></span></label>
+            <button class="icon-btn tiny danger" data-del title="Delete">${svgIcon('delete_outline')}</button>
+          </div>`).join('')
+      : '<p class="muted" style="text-align:center;padding:24px 0">No host overrides configured</p>';
+    const modal = openModal(`
+      <div class="modal-head">${svgIcon('swap_horiz')}<h3>Host Overrides</h3><button class="icon-btn" data-close title="Close">${svgIcon('close')}</button></div>
+      <div class="modal-body">${items}</div>
+    `);
+    modal.querySelectorAll('[data-close]').forEach((el) => { el.onclick = closeModal; });
+    modal.querySelectorAll('.bp-item').forEach((row) => {
+      const index = Number(row.getAttribute('data-index'));
+      row.querySelector('input[type="checkbox"]').onchange = async (e) => {
+        await api(`/api/host-overrides/${index}`, { method: 'PATCH', body: { isEnabled: e.target.checked } });
+        loadRecords();
+      };
+      row.querySelector('[data-del]').onclick = async () => {
+        await api(`/api/host-overrides/${index}`, { method: 'DELETE' });
+        await loadRecords();
+        openAppliedHostOverrides();
+      };
+    });
+  }
+
   function openClearDialog() {
     state.openModalKind = 'clear';
     const modal = openModal(`
@@ -1311,6 +1556,7 @@ const _kAppJs = r'''
         ? record.responseBodyFormatted
         : record.requestBodyFormatted
     ) || prettyJson(isResponse ? record.responseBody : record.requestBody) || '';
+    const originalUrl = record.url || '';
     const modal = openModal(`
       <div class="modal-head">
         <h3>${isResponse ? 'Edit Response' : 'Edit Request'}</h3>
@@ -1324,11 +1570,13 @@ const _kAppJs = r'''
         <div class="muted">${escapeHtml(record.url || '')}</div>
       </div>
       <div class="edit-tabs">
-        <button class="tab active" data-edit-tab="headers">Headers</button>
+        ${isResponse ? '' : '<button class="tab active" data-edit-tab="url">URL</button>'}
+        <button class="tab ${isResponse ? 'active' : ''}" data-edit-tab="headers">Headers</button>
         <button class="tab" data-edit-tab="body">Body</button>
       </div>
       <div class="modal-body">
-        <textarea id="editHeaders">${escapeHtml(originalHeaders)}</textarea>
+        ${isResponse ? '' : `<textarea id="editUrl" rows="3">${escapeHtml(originalUrl)}</textarea>`}
+        <textarea id="editHeaders" class="${isResponse ? '' : 'hidden'}">${escapeHtml(originalHeaders)}</textarea>
         <textarea id="editBody" class="hidden">${escapeHtml(originalBody)}</textarea>
       </div>
       <div class="edit-actions">
@@ -1337,12 +1585,14 @@ const _kAppJs = r'''
       </div>
     `, { dismissible: false, wide: true });
 
+    const urlEl = modal.querySelector('#editUrl');
     const headersEl = modal.querySelector('#editHeaders');
     const bodyEl = modal.querySelector('#editBody');
     modal.querySelectorAll('[data-edit-tab]').forEach((btn) => {
       btn.onclick = () => {
         const tab = btn.getAttribute('data-edit-tab');
         modal.querySelectorAll('[data-edit-tab]').forEach((b) => b.classList.toggle('active', b === btn));
+        if (urlEl) urlEl.classList.toggle('hidden', tab !== 'url');
         headersEl.classList.toggle('hidden', tab !== 'headers');
         bodyEl.classList.toggle('hidden', tab !== 'body');
       };
@@ -1367,7 +1617,20 @@ const _kAppJs = r'''
           ? value.map((item) => (item == null ? '' : String(item)))
           : (value == null ? '' : String(value));
       }
-      return { editedHeaders: headers, editedBody: bodyEl.value };
+      const payload = { editedHeaders: headers, editedBody: bodyEl.value };
+      if (urlEl) {
+        const urlText = urlEl.value.trim();
+        if (urlText && urlText !== originalUrl) {
+          try {
+            const parsedUrl = new URL(urlText);
+            if (!parsedUrl.protocol || !parsedUrl.host) throw new Error('Invalid URL');
+          } catch {
+            throw new Error('Invalid URL');
+          }
+          payload.editedUrl = urlText;
+        }
+      }
+      return payload;
     }
 
     async function resume(payload) {
@@ -1429,6 +1692,8 @@ const _kAppJs = r'''
     setIcon($('pauseBtn'), 'pause');
     setIcon($('addBpBtn'), 'add_circle_outline');
     setIcon($('bpsBtn'), 'rule');
+    setIcon($('addHoBtn'), 'swap_horiz');
+    setIcon($('hosBtn'), 'swap_horiz');
     setIcon($('clearBtn'), 'delete_outline');
     setIcon($('backBtn'), 'arrow_back');
     setIcon($('detailSearchToggle'), 'search');
@@ -1468,6 +1733,8 @@ const _kAppJs = r'''
   };
   $('addBpBtn').onclick = () => openAddBreakpoint('');
   $('bpsBtn').onclick = openAppliedBreakpoints;
+  $('addHoBtn').onclick = () => openAddHostOverride();
+  $('hosBtn').onclick = openAppliedHostOverrides;
   $('clearBtn').onclick = openClearDialog;
   $('detailSearchToggle').onclick = () => {
     state.detailSearchVisible = !state.detailSearchVisible;

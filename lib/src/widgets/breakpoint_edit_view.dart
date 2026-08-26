@@ -42,6 +42,7 @@ class BreakpointEditView extends StatefulWidget {
 class _BreakpointEditViewState extends State<BreakpointEditView>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  late TextEditingController _urlController;
   late TextEditingController _headersController;
   late TextEditingController _bodyController;
   bool _isResponse = false;
@@ -52,8 +53,9 @@ class _BreakpointEditViewState extends State<BreakpointEditView>
     super.initState();
     _isResponse = widget.controller.isResponseBreakpoint(widget.breakpointId);
     _record = widget.controller.getPausedRecord(widget.breakpointId);
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: _isResponse ? 2 : 3, vsync: this);
 
+    _urlController = TextEditingController(text: _record?.url ?? '');
     _headersController = TextEditingController(text: _formatInitialHeaders());
     _bodyController = TextEditingController(text: _formatInitialBody());
   }
@@ -89,6 +91,7 @@ class _BreakpointEditViewState extends State<BreakpointEditView>
   @override
   void dispose() {
     _tabController.dispose();
+    _urlController.dispose();
     _headersController.dispose();
     _bodyController.dispose();
     super.dispose();
@@ -145,6 +148,7 @@ class _BreakpointEditViewState extends State<BreakpointEditView>
             labelStyle: NmTextStyles.bold14(context),
             unselectedLabelStyle: NmTextStyles.medium14(context),
             tabs: [
+              if (!_isResponse) Tab(text: l10n.url),
               Tab(text: l10n.headers),
               Tab(text: l10n.body),
             ],
@@ -159,6 +163,12 @@ class _BreakpointEditViewState extends State<BreakpointEditView>
                 child: TabBarView(
                   controller: _tabController,
                   children: [
+                    if (!_isResponse)
+                      _EditorField(
+                        controller: _urlController,
+                        hintText: l10n.editUrlHint,
+                        singleLine: true,
+                      ),
                     _EditorField(
                       controller: _headersController,
                       hintText: l10n.editHeadersHint,
@@ -190,6 +200,24 @@ class _BreakpointEditViewState extends State<BreakpointEditView>
   void _continueWithEdits() {
     Map<String, dynamic>? editedHeaders;
     String? editedBody;
+    String? editedUrl;
+
+    if (!_isResponse) {
+      final urlText = _urlController.text.trim();
+      if (urlText.isNotEmpty && urlText != (_record?.url ?? '')) {
+        final uri = Uri.tryParse(urlText);
+        if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(context.nmL10n.invalidUrl),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          return;
+        }
+        editedUrl = urlText;
+      }
+    }
 
     final headersText = _headersController.text.trim();
     if (headersText.isNotEmpty && headersText != _formatInitialHeaders()) {
@@ -218,6 +246,7 @@ class _BreakpointEditViewState extends State<BreakpointEditView>
       action: BreakpointAction.continueRequest,
       editedHeaders: editedHeaders,
       editedBody: editedBody,
+      editedUrl: editedUrl,
     );
 
     widget.controller.continueBreakpoint(widget.breakpointId, result: result);
@@ -267,16 +296,12 @@ class _InfoBanner extends StatelessWidget {
             style: NmTextStyles.medium12(
               context,
             ).copyWith(color: NmTheme.onSurface(context)),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
           Text(
             record!.url,
             style: NmTextStyles.regular10(
               context,
             ).copyWith(color: NmTheme.onSurfaceVariant(context)),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -287,8 +312,13 @@ class _InfoBanner extends StatelessWidget {
 class _EditorField extends StatefulWidget {
   final TextEditingController controller;
   final String hintText;
+  final bool singleLine;
 
-  const _EditorField({required this.controller, required this.hintText});
+  const _EditorField({
+    required this.controller,
+    required this.hintText,
+    this.singleLine = false,
+  });
 
   @override
   State<_EditorField> createState() => _EditorFieldState();
@@ -325,7 +355,7 @@ class _EditorFieldState extends State<_EditorField> {
         padding: EdgeInsets.all(12),
         child: Column(
           children: [
-            if (_canShowTable)
+            if (_canShowTable && !widget.singleLine)
               Container(
                 margin: EdgeInsets.only(bottom: 8),
                 child: Row(
@@ -417,7 +447,39 @@ class _EditorFieldState extends State<_EditorField> {
                 ),
               ),
             Expanded(
-              child: _isTableView && _canShowTable
+              child: widget.singleLine
+                  ? Container(
+                      decoration: BoxDecoration(
+                        color: NmTheme.fieldBackground(context),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: NmTheme.border(context)),
+                      ),
+                      child: TextField(
+                        controller: widget.controller,
+                        maxLines: 3,
+                        minLines: 1,
+                        textAlignVertical: TextAlignVertical.top,
+                        keyboardType: TextInputType.url,
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 12,
+                          color: NmTheme.onSurface(context),
+                        ),
+                        decoration: InputDecoration(
+                          hintText: widget.hintText,
+                          hintStyle: TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 12,
+                            color: NmTheme.onSurfaceVariant(
+                              context,
+                            ).withValues(alpha: 0.5),
+                          ),
+                          contentPadding: const EdgeInsets.all(12),
+                          border: InputBorder.none,
+                        ),
+                      ),
+                    )
+                  : _isTableView && _canShowTable
                   ? _EditableTableView(
                       controller: widget.controller,
                       onChanged: () => setState(() {}),

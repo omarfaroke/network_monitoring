@@ -9,9 +9,11 @@ import '../models/network_monitor_change.dart';
 import '../models/network_search_scope.dart';
 import '../theme/nm_theme.dart';
 import '../widgets/applied_breakpoints_bottom_sheet.dart';
+import '../widgets/applied_host_overrides_bottom_sheet.dart';
 import '../widgets/breakpoint_dialog.dart';
 import '../widgets/breakpoint_edit_view.dart';
 import '../widgets/clear_records_dialog.dart';
+import '../widgets/host_override_dialog.dart';
 import '../widgets/http_record_options_bottom_sheet.dart';
 import '../widgets/network_monitoring_builder.dart';
 import 'dev_mode_options_view.dart';
@@ -122,6 +124,16 @@ class _NetworkMonitorViewState extends State<NetworkMonitorView>
                       context,
                       controller: controller,
                     );
+                  case 'add_host_override':
+                    HostOverrideDialog.show(
+                      context,
+                      onAdd: controller.addHostOverride,
+                    );
+                  case 'host_overrides':
+                    AppliedHostOverridesBottomSheet.show(
+                      context,
+                      controller: controller,
+                    );
                   case 'dev_mode':
                     DevModeOptionsView.push(context);
                   case 'clear':
@@ -192,6 +204,62 @@ class _NetworkMonitorViewState extends State<NetworkMonitorView>
                   ),
                 ),
                 PopupMenuItem(
+                  value: 'add_host_override',
+                  child: Row(
+                    children: [
+                      Icon(Icons.swap_horiz, color: NmTheme.icon(context)),
+                      const SizedBox(width: 12),
+                      Text(
+                        l10n.addHostOverride,
+                        style: NmTextStyles.medium14(
+                          context,
+                        ).copyWith(color: NmTheme.onSurface(context)),
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'host_overrides',
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.alt_route,
+                        color: controller.hostOverrides.isNotEmpty
+                            ? NmTheme.primary(context)
+                            : NmTheme.icon(context),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        l10n.appliedHostOverrides,
+                        style: NmTextStyles.medium14(
+                          context,
+                        ).copyWith(color: NmTheme.onSurface(context)),
+                      ),
+                      if (controller.hostOverrides.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: NmTheme.primary(
+                              context,
+                            ).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${controller.hostOverrides.length}',
+                            style: NmTextStyles.bold10(
+                              context,
+                            ).copyWith(color: NmTheme.primary(context)),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
                   value: 'dev_mode',
                   child: Row(
                     children: [
@@ -238,9 +306,8 @@ class _NetworkMonitorViewState extends State<NetworkMonitorView>
               onToggleScopesVisibility: () =>
                   setState(() => _showSearchScopes = !_showSearchScopes),
               onToggleSearchScope: _toggleSearchScope,
-              onSelectAllScopes: () => setState(
-                () => _searchScopes = {...NetworkSearchScopes.all},
-              ),
+              onSelectAllScopes: () =>
+                  setState(() => _searchScopes = {...NetworkSearchScopes.all}),
               onResetScopes: () => setState(
                 () => _searchScopes = {...NetworkSearchScopes.defaults},
               ),
@@ -249,6 +316,8 @@ class _NetworkMonitorViewState extends State<NetworkMonitorView>
               _GlobalPauseHintBar(controller: controller)
             else if (controller.hasEnabledAllEndpointsBreakpoint)
               _AllEndpointsBreakpointHintBar(),
+            if (controller.hasEnabledHostOverride)
+              _HostOverrideHintBar(controller: controller),
             if (controller.activeBreakpointCount > 0)
               _ActiveBreakpointsBar(controller: controller),
             Expanded(
@@ -297,8 +366,9 @@ class _NetworkMonitorViewState extends State<NetworkMonitorView>
       MaterialPageRoute(
         builder: (_) => NetworkMonitorDetailView(
           record: record,
-          initialSearchQuery:
-              initialSearchQuery.isEmpty ? null : initialSearchQuery,
+          initialSearchQuery: initialSearchQuery.isEmpty
+              ? null
+              : initialSearchQuery,
         ),
       ),
     );
@@ -328,6 +398,16 @@ class _NetworkMonitorViewState extends State<NetworkMonitorView>
           context,
           onAdd: controller.addBreakpoint,
           initialEndpointPattern: record.path,
+        );
+      },
+      onAddHostOverride: () {
+        Navigator.of(context).pop();
+        final host = Uri.tryParse(record.url)?.host;
+        HostOverrideDialog.show(
+          context,
+          onAdd: controller.addHostOverride,
+          initialFromHost: host,
+          initialUrlPattern: record.path,
         );
       },
       onCopyUrl: () {
@@ -448,6 +528,40 @@ class _AllEndpointsBreakpointHintBar extends StatelessWidget {
           Expanded(
             child: Text(
               l10n.allEndpointsBreakpointActiveHint,
+              style: NmTextStyles.medium12(
+                context,
+              ).copyWith(color: NmTheme.primary(context)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HostOverrideHintBar extends StatelessWidget {
+  final NetworkMonitorController controller;
+
+  const _HostOverrideHintBar({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.nmL10n;
+    final enabledCount = controller.hostOverrides
+        .where((rule) => rule.isEnabled)
+        .length;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      color: NmTheme.primary(context).withValues(alpha: 0.08),
+      child: Row(
+        children: [
+          Icon(Icons.swap_horiz, color: NmTheme.primary(context), size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              l10n.hostOverrideActiveHint(enabledCount),
               style: NmTextStyles.medium12(
                 context,
               ).copyWith(color: NmTheme.primary(context)),
@@ -607,9 +721,9 @@ class _SearchAndFilterBar extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 l10n.searchScopes,
-                style: NmTextStyles.medium12(context).copyWith(
-                  color: NmTheme.onSurfaceVariant(context),
-                ),
+                style: NmTextStyles.medium12(
+                  context,
+                ).copyWith(color: NmTheme.onSurfaceVariant(context)),
               ),
             ),
             const SizedBox(height: 6),
@@ -829,8 +943,6 @@ class _HttpRecordCard extends StatelessWidget {
                         style: NmTextStyles.medium12(
                           context,
                         ).copyWith(color: NmTheme.onSurface(context)),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     if (isPaused) ...[
@@ -853,13 +965,27 @@ class _HttpRecordCard extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        record.url,
-                        style: NmTextStyles.regular10(
-                          context,
-                        ).copyWith(color: NmTheme.onSurfaceVariant(context)),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            record.url,
+                            style: NmTextStyles.regular10(
+                              context,
+                            ).copyWith(color: NmTheme.onSurfaceVariant(context)),
+                          ),
+                          if (record.originalUrl != null &&
+                              record.originalUrl != record.url)
+                            Text(
+                              record.originalUrl!,
+                              style: NmTextStyles.regular10(context).copyWith(
+                                color: NmTheme.onSurfaceVariant(
+                                  context,
+                                ).withValues(alpha: 0.7),
+                                decoration: TextDecoration.lineThrough,
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                     if (record.duration != null) ...[

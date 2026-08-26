@@ -503,4 +503,62 @@ class NetworkMonitoringLocalizationsAr extends NetworkMonitoringLocalizations {
 
   @override
   String get shareResponseBody => '--- محتوى الاستجابة ---';
+
+  @override
+  String get originalUrl => 'الرابط الأصلي';
+
+  @override
+  String get editUrlHint => 'تعديل رابط الطلب...';
+
+  @override
+  String get invalidUrl => 'رابط غير صالح';
+
+  @override
+  String get collapseAll => 'طي الكل';
+
+  @override
+  String get expandAll => 'توسيع الكل';
+
+  @override
+  String get addHostOverride => 'إضافة استبدال المضيف';
+
+  @override
+  String get appliedHostOverrides => 'استبدالات المضيف';
+
+  @override
+  String get noHostOverridesConfigured => 'لا توجد استبدالات مضيف مُعدّة';
+
+  @override
+  String get fromHost => 'المضيف الأصلي';
+
+  @override
+  String get fromHostHint => 'مثال: api.example.com (فارغ = أي مضيف)';
+
+  @override
+  String get toHost => 'الاستبدال بـ';
+
+  @override
+  String get toHostHint =>
+      'مثال: staging.example.com أو http://192.168.1.10:8080';
+
+  @override
+  String get hostOverrideForAll => 'كل الطلبات المطابقة';
+
+  @override
+  String get hostOverrideForSpecific => 'طلب محدد';
+
+  @override
+  String get anyHost => 'أي مضيف';
+
+  @override
+  String get overrideHostForRequest => 'استبدال المضيف (هذا الطلب)...';
+
+  @override
+  String hostOverrideActiveHint(int count) {
+    return '$count استبدال مضيف نشط. سيتم إعادة كتابة الطلبات المطابقة.';
+  }
+
+  @override
+  String get noHostOverridesConfiguredDevMode =>
+      'لا توجد استبدالات مضيف مُعدّة. أضفها من شاشة المراقب.';
 }

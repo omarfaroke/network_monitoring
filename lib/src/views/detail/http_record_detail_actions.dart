@@ -9,7 +9,11 @@ import '../../widgets/nm_clipboard.dart';
 abstract final class HttpRecordDetailActions {
   HttpRecordDetailActions._();
 
-  static void handleMenuAction(BuildContext context, HttpRecordModel record, String action) {
+  static void handleMenuAction(
+    BuildContext context,
+    HttpRecordModel record,
+    String action,
+  ) {
     if (action == 'share_all') {
       nmShareContent(context, buildShareContent(context, record));
       return;
@@ -37,13 +41,22 @@ abstract final class HttpRecordDetailActions {
     };
   }
 
-  static String buildShareContent(BuildContext context, HttpRecordModel record) {
+  static String buildShareContent(
+    BuildContext context,
+    HttpRecordModel record,
+  ) {
     final l10n = context.nmL10n;
     final buffer = StringBuffer()
       ..writeln(l10n.shareApiRequestDetails)
-      ..writeln('${l10n.url}: ${record.url}')
+      ..writeln('${l10n.url}: ${record.url}');
+    if (record.originalUrl != null && record.originalUrl != record.url) {
+      buffer.writeln('${l10n.originalUrl}: ${record.originalUrl}');
+    }
+    buffer
       ..writeln('${l10n.method}: ${record.method}')
-      ..writeln('${l10n.status}: ${record.statusCode} ${record.statusMessage ?? ''}')
+      ..writeln(
+        '${l10n.status}: ${record.statusCode} ${record.statusMessage ?? ''}',
+      )
       ..writeln('${l10n.duration}: ${record.formattedDuration}')
       ..writeln('${l10n.startTime}: ${record.startTime}')
       ..writeln()

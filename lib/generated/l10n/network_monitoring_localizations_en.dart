@@ -501,4 +501,62 @@ class NetworkMonitoringLocalizationsEn extends NetworkMonitoringLocalizations {
 
   @override
   String get shareResponseBody => '--- Response Body ---';
+
+  @override
+  String get originalUrl => 'Original URL';
+
+  @override
+  String get editUrlHint => 'Edit request URL...';
+
+  @override
+  String get invalidUrl => 'Invalid URL';
+
+  @override
+  String get collapseAll => 'Collapse all';
+
+  @override
+  String get expandAll => 'Expand all';
+
+  @override
+  String get addHostOverride => 'Add Host Override';
+
+  @override
+  String get appliedHostOverrides => 'Host Overrides';
+
+  @override
+  String get noHostOverridesConfigured => 'No host overrides configured';
+
+  @override
+  String get fromHost => 'From host';
+
+  @override
+  String get fromHostHint => 'e.g. api.example.com (empty = any host)';
+
+  @override
+  String get toHost => 'Replace with';
+
+  @override
+  String get toHostHint =>
+      'e.g. staging.example.com or http://192.168.1.10:8080';
+
+  @override
+  String get hostOverrideForAll => 'All matching requests';
+
+  @override
+  String get hostOverrideForSpecific => 'Specific request';
+
+  @override
+  String get anyHost => 'Any host';
+
+  @override
+  String get overrideHostForRequest => 'Override host (this request)...';
+
+  @override
+  String hostOverrideActiveHint(int count) {
+    return '$count host override(s) active. Matching requests will be rewritten.';
+  }
+
+  @override
+  String get noHostOverridesConfiguredDevMode =>
+      'No host overrides configured. Add them from the monitor view.';
 }

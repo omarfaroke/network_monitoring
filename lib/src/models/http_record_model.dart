@@ -13,11 +13,15 @@ class HttpRecordModel {
   final DateTime startTime;
   DateTime? endTime;
   final String method;
-  final String url;
-  final String baseUrl;
-  final String path;
+  String url;
+  String baseUrl;
+  String path;
+
+  /// URL the app originally requested, when a host override or breakpoint
+  /// URL edit changed the outgoing target.
+  String? originalUrl;
   Map<String, dynamic> requestHeaders;
-  final Map<String, dynamic>? queryParameters;
+  Map<String, dynamic>? queryParameters;
   dynamic requestBody;
   Map<String, dynamic>? responseHeaders;
   dynamic responseBody;
@@ -37,6 +41,7 @@ class HttpRecordModel {
     required this.url,
     required this.baseUrl,
     required this.path,
+    this.originalUrl,
     required this.requestHeaders,
     this.queryParameters,
     this.requestBody,
@@ -60,8 +65,7 @@ class HttpRecordModel {
   int get requestHeadersByteSize =>
       HttpPayloadSizeUtils.headersByteSize(requestHeaders);
 
-  int get requestBodyByteSize =>
-      HttpPayloadSizeUtils.bodyByteSize(requestBody);
+  int get requestBodyByteSize => HttpPayloadSizeUtils.bodyByteSize(requestBody);
 
   int get responseHeadersByteSize =>
       HttpPayloadSizeUtils.headersByteSizeNullable(responseHeaders);
@@ -100,8 +104,7 @@ class HttpRecordModel {
   String get queryParametersFormatted =>
       JsonFormatUtils.formatMap(queryParameters);
 
-  String get requestHeadersFormatted =>
-      JsonFormatUtils.encode(requestHeaders);
+  String get requestHeadersFormatted => JsonFormatUtils.encode(requestHeaders);
 
   String get responseHeadersFormatted =>
       JsonFormatUtils.formatMap(responseHeaders);
@@ -126,6 +129,16 @@ class HttpRecordModel {
       status == HttpRecordStatus.error ||
       (statusCode != null && statusCode! >= 400);
 
+  /// Updates the outgoing URL after a host override or breakpoint edit.
+  void applyOutgoingUri(Uri uri) {
+    originalUrl ??= url;
+    url = uri.toString();
+    path = uri.path.isEmpty ? '/' : uri.path;
+    final port = uri.hasPort ? ':${uri.port}' : '';
+    baseUrl = '${uri.scheme}://${uri.host}$port';
+    if (originalUrl == url) originalUrl = null;
+  }
+
   /// JSON representation for the remote monitor API / web UI.
   Map<String, dynamic> toJson() {
     final jwt = authTokenJwtDecode;
@@ -135,6 +148,7 @@ class HttpRecordModel {
       'endTime': endTime?.toIso8601String(),
       'method': method,
       'url': url,
+      'originalUrl': originalUrl,
       'baseUrl': baseUrl,
       'path': path,
       'requestHeaders': _jsonSafe(requestHeaders),

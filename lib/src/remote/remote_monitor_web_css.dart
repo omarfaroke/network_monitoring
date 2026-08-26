@@ -222,10 +222,11 @@ body {
   border-color: var(--primary);
 }
 .card-row { display: flex; align-items: center; gap: 8px; }
-.path { flex: 1; font-size: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.url-line { display: flex; gap: 8px; margin-top: 6px; }
-.url-line .url { flex: 1; font-size: 10px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.url-line .dur { font-size: 10px; color: var(--muted); }
+.path { flex: 1; font-size: 12px; font-weight: 500; overflow-wrap: anywhere; word-break: break-word; }
+.url-line { display: flex; gap: 8px; margin-top: 6px; align-items: flex-start; }
+.url-line .url { flex: 1; font-size: 10px; color: var(--muted); overflow-wrap: anywhere; word-break: break-word; }
+.url-line .url.original { text-decoration: line-through; opacity: .7; margin-top: 2px; display: block; }
+.url-line .dur { font-size: 10px; color: var(--muted); flex-shrink: 0; }
 .card-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .action-btn {
   width: 26px;
@@ -313,7 +314,66 @@ body {
   word-break: break-word;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
-  line-height: 1.45;
+  line-height: 1.5;
+}
+.code-body {
+  background: var(--surface);
+  border-radius: 8px;
+  overflow: auto;
+}
+.code-view {
+  display: grid;
+  grid-template-columns: auto 16px 1fr;
+  column-gap: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 8px 8px 8px 4px;
+  min-width: min-content;
+}
+.code-line { display: contents; }
+.fold-btn {
+  border: none;
+  background: transparent;
+  width: 16px;
+  height: 18px;
+  padding: 0;
+  cursor: pointer;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.fold-btn svg { width: 14px; height: 14px; fill: currentColor; }
+.fold-spacer { width: 16px; height: 18px; display: inline-block; }
+.ln {
+  color: var(--muted);
+  opacity: .75;
+  text-align: right;
+  user-select: none;
+  white-space: pre;
+}
+.code-text { white-space: pre; }
+.code-view.search {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.code-view.search .gutter {
+  margin: 0;
+  color: var(--muted);
+  opacity: .75;
+  user-select: none;
+  text-align: right;
+  white-space: pre;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+.code-view.search .pre {
+  flex: 1;
+  white-space: pre;
+  word-break: normal;
 }
 table.json-table {
   width: 100%; border-collapse: collapse; font-size: 12px;

@@ -16,9 +16,9 @@ class DevModeOptionsView extends StatefulWidget {
 
   /// Pushes the dev mode settings route onto [context].
   static void push(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const DevModeOptionsView()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const DevModeOptionsView()));
   }
 
   @override
@@ -73,17 +73,14 @@ class _DevModeOptionsViewState extends State<DevModeOptionsView>
       appBar: AppBar(
         title: Text(
           l10n.devModeOptions,
-          style: NmTextStyles.bold18(context).copyWith(
-            color: NmTheme.onSurface(context),
-          ),
+          style: NmTextStyles.bold18(
+            context,
+          ).copyWith(color: NmTheme.onSurface(context)),
         ),
         backgroundColor: NmTheme.surface(context),
         elevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new,
-            color: NmTheme.icon(context),
-          ),
+          icon: Icon(Icons.arrow_back_ios_new, color: NmTheme.icon(context)),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -95,25 +92,23 @@ class _DevModeOptionsViewState extends State<DevModeOptionsView>
             decoration: BoxDecoration(
               color: NmTheme.fieldBackground(context),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: NmTheme.border(context),
-              ),
+              border: Border.all(color: NmTheme.border(context)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   l10n.httpMonitoring,
-                  style: NmTextStyles.bold16(context).copyWith(
-                    color: NmTheme.onSurface(context),
-                  ),
+                  style: NmTextStyles.bold16(
+                    context,
+                  ).copyWith(color: NmTheme.onSurface(context)),
                 ),
                 SizedBox(height: 4),
                 Text(
                   l10n.httpMonitoringDescription,
-                  style: NmTextStyles.regular12(context).copyWith(
-                    color: NmTheme.onSurfaceVariant(context),
-                  ),
+                  style: NmTextStyles.regular12(
+                    context,
+                  ).copyWith(color: NmTheme.onSurfaceVariant(context)),
                 ),
                 SizedBox(height: 12),
                 Row(
@@ -121,9 +116,9 @@ class _DevModeOptionsViewState extends State<DevModeOptionsView>
                   children: [
                     Text(
                       l10n.monitoringHttp,
-                      style: NmTextStyles.medium14(context).copyWith(
-                        color: NmTheme.onSurface(context),
-                      ),
+                      style: NmTextStyles.medium14(
+                        context,
+                      ).copyWith(color: NmTheme.onSurface(context)),
                     ),
                     Switch(
                       value: controller.isMonitoringEnabled,
@@ -135,8 +130,9 @@ class _DevModeOptionsViewState extends State<DevModeOptionsView>
                           NetworkMonitorOverlay.hide();
                         }
                       },
-                      activeTrackColor:
-                          NmTheme.primary(context).withValues(alpha: 0.5),
+                      activeTrackColor: NmTheme.primary(
+                        context,
+                      ).withValues(alpha: 0.5),
                       activeThumbColor: NmTheme.primary(context),
                     ),
                   ],
@@ -144,7 +140,8 @@ class _DevModeOptionsViewState extends State<DevModeOptionsView>
               ],
             ),
           ),
-          if (controller.isMonitoringEnabled && !controller.isOverlayVisible) ...[
+          if (controller.isMonitoringEnabled &&
+              !controller.isOverlayVisible) ...[
             SizedBox(height: 16),
             GestureDetector(
               onTap: () {
@@ -156,21 +153,22 @@ class _DevModeOptionsViewState extends State<DevModeOptionsView>
                 decoration: BoxDecoration(
                   color: NmTheme.fieldBackground(context),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: NmTheme.border(context),
-                  ),
+                  border: Border.all(color: NmTheme.border(context)),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.visibility,
-                        color: NmTheme.primary(context), size: 20),
+                    Icon(
+                      Icons.visibility,
+                      color: NmTheme.primary(context),
+                      size: 20,
+                    ),
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         l10n.showFloatingButton,
-                        style: NmTextStyles.medium14(context).copyWith(
-                          color: NmTheme.onSurface(context),
-                        ),
+                        style: NmTextStyles.medium14(
+                          context,
+                        ).copyWith(color: NmTheme.onSurface(context)),
                       ),
                     ),
                     Icon(
@@ -189,25 +187,23 @@ class _DevModeOptionsViewState extends State<DevModeOptionsView>
             decoration: BoxDecoration(
               color: NmTheme.fieldBackground(context),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: NmTheme.border(context),
-              ),
+              border: Border.all(color: NmTheme.border(context)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   l10n.remoteMonitor,
-                  style: NmTextStyles.bold16(context).copyWith(
-                    color: NmTheme.onSurface(context),
-                  ),
+                  style: NmTextStyles.bold16(
+                    context,
+                  ).copyWith(color: NmTheme.onSurface(context)),
                 ),
                 SizedBox(height: 4),
                 Text(
                   l10n.remoteMonitorDescription,
-                  style: NmTextStyles.regular12(context).copyWith(
-                    color: NmTheme.onSurfaceVariant(context),
-                  ),
+                  style: NmTextStyles.regular12(
+                    context,
+                  ).copyWith(color: NmTheme.onSurfaceVariant(context)),
                 ),
                 SizedBox(height: 12),
                 Row(
@@ -234,13 +230,15 @@ class _DevModeOptionsViewState extends State<DevModeOptionsView>
                       )
                     else
                       Switch(
-                        value: controller.isMonitoringEnabled &&
+                        value:
+                            controller.isMonitoringEnabled &&
                             controller.isRemoteMonitorEnabled,
                         onChanged: controller.isMonitoringEnabled
                             ? _onRemoteMonitorChanged
                             : null,
-                        activeTrackColor:
-                            NmTheme.primary(context).withValues(alpha: 0.5),
+                        activeTrackColor: NmTheme.primary(
+                          context,
+                        ).withValues(alpha: 0.5),
                         activeThumbColor: NmTheme.primary(context),
                       ),
                   ],
@@ -249,9 +247,9 @@ class _DevModeOptionsViewState extends State<DevModeOptionsView>
                   SizedBox(height: 8),
                   Text(
                     '${l10n.remoteMonitorFailed}: ${controller.remoteMonitorError}',
-                    style: NmTextStyles.regular12(context).copyWith(
-                      color: Colors.red,
-                    ),
+                    style: NmTextStyles.regular12(
+                      context,
+                    ).copyWith(color: Colors.red),
                   ),
                 ],
                 if (controller.isRemoteMonitorEnabled &&
@@ -259,9 +257,9 @@ class _DevModeOptionsViewState extends State<DevModeOptionsView>
                   SizedBox(height: 12),
                   Text(
                     l10n.remoteMonitorUrl,
-                    style: NmTextStyles.medium12(context).copyWith(
-                      color: NmTheme.onSurfaceVariant(context),
-                    ),
+                    style: NmTextStyles.medium12(
+                      context,
+                    ).copyWith(color: NmTheme.onSurfaceVariant(context)),
                   ),
                   SizedBox(height: 6),
                   Row(
@@ -269,8 +267,9 @@ class _DevModeOptionsViewState extends State<DevModeOptionsView>
                     children: [
                       Expanded(
                         child: InkWell(
-                          onTap: () =>
-                              _openOrCopyRemoteUrl(controller.remoteMonitorUrl!),
+                          onTap: () => _openOrCopyRemoteUrl(
+                            controller.remoteMonitorUrl!,
+                          ),
                           borderRadius: BorderRadius.circular(8),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 4),
@@ -308,26 +307,24 @@ class _DevModeOptionsViewState extends State<DevModeOptionsView>
               decoration: BoxDecoration(
                 color: NmTheme.fieldBackground(context),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: NmTheme.border(context),
-                ),
+                border: Border.all(color: NmTheme.border(context)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     l10n.breakpoints,
-                    style: NmTextStyles.bold16(context).copyWith(
-                      color: NmTheme.onSurface(context),
-                    ),
+                    style: NmTextStyles.bold16(
+                      context,
+                    ).copyWith(color: NmTheme.onSurface(context)),
                   ),
                   SizedBox(height: 8),
                   if (controller.breakpoints.isEmpty)
                     Text(
                       l10n.noBreakpointsConfiguredDevMode,
-                      style: NmTextStyles.regular12(context).copyWith(
-                        color: NmTheme.onSurfaceVariant(context),
-                      ),
+                      style: NmTextStyles.regular12(
+                        context,
+                      ).copyWith(color: NmTheme.onSurfaceVariant(context)),
                     )
                   else
                     ...controller.breakpoints.asMap().entries.map((entry) {
@@ -339,15 +336,15 @@ class _DevModeOptionsViewState extends State<DevModeOptionsView>
                           bp.target == BreakpointTarget.allEndpoints
                               ? l10n.allEndpoints
                               : bp.endpointPattern ?? l10n.unknown,
-                          style: NmTextStyles.medium14(context).copyWith(
-                            color: NmTheme.onSurface(context),
-                          ),
+                          style: NmTextStyles.medium14(
+                            context,
+                          ).copyWith(color: NmTheme.onSurface(context)),
                         ),
                         subtitle: Text(
                           bp.type.label(l10n),
-                          style: NmTextStyles.regular12(context).copyWith(
-                            color: NmTheme.onSurfaceVariant(context),
-                          ),
+                          style: NmTextStyles.regular12(
+                            context,
+                          ).copyWith(color: NmTheme.onSurfaceVariant(context)),
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -356,15 +353,95 @@ class _DevModeOptionsViewState extends State<DevModeOptionsView>
                               value: bp.isEnabled,
                               onChanged: (v) =>
                                   controller.toggleBreakpoint(index, v),
-                              activeTrackColor: NmTheme.primary(context)
-                                  .withValues(alpha: 0.5),
+                              activeTrackColor: NmTheme.primary(
+                                context,
+                              ).withValues(alpha: 0.5),
                               activeThumbColor: NmTheme.primary(context),
                             ),
                             IconButton(
-                              icon: Icon(Icons.delete_outline,
-                                  color: Colors.red, size: 20),
+                              icon: Icon(
+                                Icons.delete_outline,
+                                color: Colors.red,
+                                size: 20,
+                              ),
                               onPressed: () =>
                                   controller.removeBreakpoint(index),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                ],
+              ),
+            ),
+            SizedBox(height: 16),
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: NmTheme.fieldBackground(context),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: NmTheme.border(context)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.appliedHostOverrides,
+                    style: NmTextStyles.bold16(
+                      context,
+                    ).copyWith(color: NmTheme.onSurface(context)),
+                  ),
+                  SizedBox(height: 8),
+                  if (controller.hostOverrides.isEmpty)
+                    Text(
+                      l10n.noHostOverridesConfiguredDevMode,
+                      style: NmTextStyles.regular12(
+                        context,
+                      ).copyWith(color: NmTheme.onSurfaceVariant(context)),
+                    )
+                  else
+                    ...controller.hostOverrides.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final rule = entry.value;
+                      final from = rule.fromHost.isEmpty
+                          ? l10n.anyHost
+                          : rule.fromHost;
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          '$from → ${rule.toHost}',
+                          style: NmTextStyles.medium14(
+                            context,
+                          ).copyWith(color: NmTheme.onSurface(context)),
+                        ),
+                        subtitle: Text(
+                          rule.target == BreakpointTarget.allEndpoints
+                              ? l10n.hostOverrideForAll
+                              : (rule.urlPattern ?? l10n.unknown),
+                          style: NmTextStyles.regular12(
+                            context,
+                          ).copyWith(color: NmTheme.onSurfaceVariant(context)),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Switch(
+                              value: rule.isEnabled,
+                              onChanged: (v) =>
+                                  controller.toggleHostOverride(index, v),
+                              activeTrackColor: NmTheme.primary(
+                                context,
+                              ).withValues(alpha: 0.5),
+                              activeThumbColor: NmTheme.primary(context),
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.delete_outline,
+                                color: Colors.red,
+                                size: 20,
+                              ),
+                              onPressed: () =>
+                                  controller.removeHostOverride(index),
                             ),
                           ],
                         ),

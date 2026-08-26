@@ -8,25 +8,30 @@ class BreakpointEditResult {
   final BreakpointAction action;
   final Map<String, dynamic>? editedHeaders;
   final String? editedBody;
+  final String? editedUrl;
 
   const BreakpointEditResult({
     required this.action,
     this.editedHeaders,
     this.editedBody,
+    this.editedUrl,
   });
 
   const BreakpointEditResult.continueUnmodified()
     : action = BreakpointAction.continueRequest,
       editedHeaders = null,
-      editedBody = null;
+      editedBody = null,
+      editedUrl = null;
 
   const BreakpointEditResult.cancel()
     : action = BreakpointAction.cancel,
       editedHeaders = null,
-      editedBody = null;
+      editedBody = null,
+      editedUrl = null;
 
   bool get isCancelled => action == BreakpointAction.cancel;
-  bool get hasEdits => editedHeaders != null || editedBody != null;
+  bool get hasEdits =>
+      editedHeaders != null || editedBody != null || editedUrl != null;
 
   /// Header map with string (or string-list) values that Dio can apply.
   Map<String, dynamic>? get normalizedHeaders {

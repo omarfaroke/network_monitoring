@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../models/breakpoint_edit_result.dart';
+import '../models/host_override_model.dart';
 import '../network_monitoring_registry.dart';
 import '../remote/remote_monitor_server.dart';
 import '../widgets/dev_mode_password_dialog.dart';
@@ -22,6 +23,7 @@ class NetworkMonitorController {
 
   final List<HttpRecordModel> _records = [];
   final List<BreakpointModel> _breakpoints = [];
+  final List<HostOverrideModel> _hostOverrides = [];
   bool _isMonitoringEnabled = false;
   bool _isDevModeEnabled = false;
   bool _isOverlayVisible = false;
@@ -57,6 +59,10 @@ class NetworkMonitorController {
 
   /// Configured breakpoint rules.
   List<BreakpointModel> get breakpoints => List.unmodifiable(_breakpoints);
+
+  /// Host rewrite rules applied to outgoing requests.
+  List<HostOverrideModel> get hostOverrides =>
+      List.unmodifiable(_hostOverrides);
 
   /// Whether the Dio interceptor is recording traffic.
   bool get isMonitoringEnabled => _isMonitoringEnabled;
@@ -294,6 +300,43 @@ class NetworkMonitorController {
       _breakpoints[index].isEnabled = value;
       _notify(NetworkMonitorChange.breakpoints);
     }
+  }
+
+  /// Appends a host rewrite rule.
+  void addHostOverride(HostOverrideModel override) {
+    _hostOverrides.add(override);
+    _notify(NetworkMonitorChange.hostOverrides);
+  }
+
+  /// Removes the host override at [index] in [hostOverrides].
+  void removeHostOverride(int index) {
+    if (index >= 0 && index < _hostOverrides.length) {
+      _hostOverrides.removeAt(index);
+      _notify(NetworkMonitorChange.hostOverrides);
+    }
+  }
+
+  /// Enables or disables the host override at [index].
+  void toggleHostOverride(int index, bool value) {
+    if (index >= 0 &&
+        index < _hostOverrides.length &&
+        _hostOverrides[index].isEnabled != value) {
+      _hostOverrides[index].isEnabled = value;
+      _notify(NetworkMonitorChange.hostOverrides);
+    }
+  }
+
+  /// Whether any enabled host override is configured.
+  bool get hasEnabledHostOverride =>
+      _hostOverrides.any((rule) => rule.isEnabled);
+
+  /// Applies the first matching host override to [uri].
+  Uri applyHostOverride(Uri uri) {
+    for (final rule in _hostOverrides) {
+      final rewritten = rule.tryRewrite(uri);
+      if (rewritten != null) return rewritten;
+    }
+    return uri;
   }
 
   /// Whether outgoing traffic to [url] should pause before the request is sent.

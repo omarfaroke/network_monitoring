@@ -26,6 +26,10 @@ abstract final class RemoteMonitorWeb {
           <button id="bpsBtn" class="icon-btn" title="Applied Breakpoints" aria-label="Applied Breakpoints">
             <span id="bpCount" class="count-badge hidden"></span>
           </button>
+          <button id="addHoBtn" class="icon-btn" title="Add Host Override" aria-label="Add Host Override"></button>
+          <button id="hosBtn" class="icon-btn" title="Host Overrides" aria-label="Host Overrides">
+            <span id="hoCount" class="count-badge hidden"></span>
+          </button>
           <button id="clearBtn" class="icon-btn danger" title="Clear all" aria-label="Clear all"></button>
         </div>
       </div>

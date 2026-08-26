@@ -12,6 +12,7 @@ class HttpRecordOptionsBottomSheet extends StatelessWidget {
   final VoidCallback onViewDetails;
   final VoidCallback onToggleQuickBreakpoint;
   final VoidCallback onAddCustomBreakpoint;
+  final VoidCallback onAddHostOverride;
   final VoidCallback onCopyUrl;
 
   const HttpRecordOptionsBottomSheet({
@@ -21,6 +22,7 @@ class HttpRecordOptionsBottomSheet extends StatelessWidget {
     required this.onViewDetails,
     required this.onToggleQuickBreakpoint,
     required this.onAddCustomBreakpoint,
+    required this.onAddHostOverride,
     required this.onCopyUrl,
   });
 
@@ -31,6 +33,7 @@ class HttpRecordOptionsBottomSheet extends StatelessWidget {
     required VoidCallback onViewDetails,
     required VoidCallback onToggleQuickBreakpoint,
     required VoidCallback onAddCustomBreakpoint,
+    required VoidCallback onAddHostOverride,
     required VoidCallback onCopyUrl,
   }) {
     return showModalBottomSheet<void>(
@@ -45,13 +48,13 @@ class HttpRecordOptionsBottomSheet extends StatelessWidget {
         onViewDetails: onViewDetails,
         onToggleQuickBreakpoint: onToggleQuickBreakpoint,
         onAddCustomBreakpoint: onAddCustomBreakpoint,
+        onAddHostOverride: onAddHostOverride,
         onCopyUrl: onCopyUrl,
       ),
     );
   }
 
-  bool get _hasBreakpoint =>
-      controller.hasBreakpointForEndpoint(record.path);
+  bool get _hasBreakpoint => controller.hasBreakpointForEndpoint(record.path);
 
   @override
   Widget build(BuildContext context) {
@@ -66,18 +69,18 @@ class HttpRecordOptionsBottomSheet extends StatelessWidget {
           children: [
             Text(
               '${record.method} ${record.path}',
-              style: NmTextStyles.bold16(context).copyWith(
-                color: NmTheme.onSurface(context),
-              ),
+              style: NmTextStyles.bold16(
+                context,
+              ).copyWith(color: NmTheme.onSurface(context)),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 4),
             Text(
               record.url,
-              style: NmTextStyles.regular12(context).copyWith(
-                color: NmTheme.onSurfaceVariant(context),
-              ),
+              style: NmTextStyles.regular12(
+                context,
+              ).copyWith(color: NmTheme.onSurfaceVariant(context)),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -101,6 +104,11 @@ class HttpRecordOptionsBottomSheet extends StatelessWidget {
               icon: Icons.tune,
               label: l10n.addBreakpointCustom,
               onTap: onAddCustomBreakpoint,
+            ),
+            _OptionTile(
+              icon: Icons.swap_horiz,
+              label: l10n.overrideHostForRequest,
+              onTap: onAddHostOverride,
             ),
             _OptionTile(
               icon: Icons.copy,
@@ -131,11 +139,7 @@ class _OptionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: Icon(
-        icon,
-        color: iconColor ?? NmTheme.icon(context),
-        size: 22,
-      ),
+      leading: Icon(icon, color: iconColor ?? NmTheme.icon(context), size: 22),
       title: Text(
         label,
         style: NmTextStyles.medium14(context).copyWith(

@@ -43,7 +43,19 @@ class NetworkMonitorOverviewTab extends StatelessWidget {
                 value: record.url,
                 copyable: true,
                 searchBlockId: DetailSearchBlockIds.overviewUrl,
+                maxLines: null,
+                wrapAnywhere: true,
               ),
+              if (record.originalUrl != null &&
+                  record.originalUrl != record.url)
+                NmInfoItem(
+                  label: l10n.originalUrl,
+                  value: record.originalUrl!,
+                  copyable: true,
+                  searchBlockId: DetailSearchBlockIds.overviewOriginalUrl,
+                  maxLines: null,
+                  wrapAnywhere: true,
+                ),
               NmInfoItem(
                 label: l10n.method,
                 value: record.method,
@@ -140,6 +152,40 @@ class NetworkMonitorOverviewTab extends StatelessWidget {
             const NmDetailGap(),
             JwtDecodeSection(jwtResult: record.authTokenJwtDecode),
           ],
+          if (record.queryParameters != null &&
+              record.queryParameters!.isNotEmpty) ...[
+            const NmDetailGap(),
+            NmCodeBlock(
+              title: l10n.queryParameters,
+              content: record.queryParametersFormatted,
+              copyable: true,
+              searchQuery: query,
+              searchBlockId: DetailSearchBlockIds.overviewQuery,
+              searchNavigation: searchNavigation,
+            ),
+          ],
+          const NmDetailGap(),
+          NmCodeBlock(
+            title: l10n.requestHeaders,
+            content: record.requestHeadersFormatted,
+            copyable: true,
+            searchQuery: query,
+            searchBlockId: DetailSearchBlockIds.overviewRequestHeaders,
+            searchNavigation: searchNavigation,
+          ),
+          const NmDetailGap(),
+          NmCodeBlock(
+            title: l10n.requestBody,
+            content: record.requestBodyFormatted.isEmpty
+                ? l10n.noRequestBody
+                : record.requestBodyFormatted,
+            copyable: record.requestBodyFormatted.isNotEmpty,
+            searchQuery: query,
+            searchBlockId: record.requestBodyFormatted.isNotEmpty
+                ? DetailSearchBlockIds.overviewRequestBody
+                : null,
+            searchNavigation: searchNavigation,
+          ),
         ],
       ),
     );

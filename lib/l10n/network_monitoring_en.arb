@@ -215,5 +215,30 @@
   "shareRequestHeaders": "--- Request Headers ---",
   "shareRequestBody": "--- Request Body ---",
   "shareResponseHeaders": "--- Response Headers ---",
-  "shareResponseBody": "--- Response Body ---"
+  "shareResponseBody": "--- Response Body ---",
+  "originalUrl": "Original URL",
+  "editUrlHint": "Edit request URL...",
+  "invalidUrl": "Invalid URL",
+  "collapseAll": "Collapse all",
+  "expandAll": "Expand all",
+  "addHostOverride": "Add Host Override",
+  "appliedHostOverrides": "Host Overrides",
+  "noHostOverridesConfigured": "No host overrides configured",
+  "fromHost": "From host",
+  "fromHostHint": "e.g. api.example.com (empty = any host)",
+  "toHost": "Replace with",
+  "toHostHint": "e.g. staging.example.com or http://192.168.1.10:8080",
+  "hostOverrideForAll": "All matching requests",
+  "hostOverrideForSpecific": "Specific request",
+  "anyHost": "Any host",
+  "overrideHostForRequest": "Override host (this request)...",
+  "hostOverrideActiveHint": "{count} host override(s) active. Matching requests will be rewritten.",
+  "@hostOverrideActiveHint": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noHostOverridesConfiguredDevMode": "No host overrides configured. Add them from the monitor view."
 }

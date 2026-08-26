@@ -7,6 +7,7 @@ import '../controllers/network_monitor_controller.dart';
 import '../l10n/nm_localizations.dart';
 import '../models/http_record_model.dart';
 import '../network_monitoring_registry.dart';
+import '../utils/request_uri_utils.dart';
 
 /// Dio interceptor that records traffic and applies breakpoints when monitoring is on.
 ///
@@ -16,6 +17,7 @@ class NetworkMonitorInterceptor extends Interceptor {
   static const _uuid = Uuid();
   static const _requestIdKey = 'network_monitor_request_id';
   static const _startTimeKey = 'network_monitor_start_time';
+  static const _originalUrlKey = 'network_monitor_original_url';
 
   final NetworkMonitorController _controller;
 
@@ -38,24 +40,39 @@ class NetworkMonitorInterceptor extends Interceptor {
     options.extra[_requestIdKey] = requestId;
     options.extra[_startTimeKey] = startTime.millisecondsSinceEpoch;
 
+    final originalUri = options.uri;
+    options.extra[_originalUrlKey] = originalUri.toString();
+    final rewrittenUri = _controller.applyHostOverride(originalUri);
+    final hostOverridden = rewrittenUri.toString() != originalUri.toString();
+    if (hostOverridden) {
+      RequestUriUtils.applyToOptions(options, rewrittenUri);
+    }
+
+    final outgoingUri = options.uri;
     final record = HttpRecordModel(
       id: requestId,
       startTime: startTime,
       method: options.method,
-      url: options.uri.toString(),
+      url: outgoingUri.toString(),
+      originalUrl: hostOverridden ? originalUri.toString() : null,
       baseUrl: options.baseUrl,
-      path: options.path,
+      path: options.path.startsWith('http')
+          ? (outgoingUri.path.isEmpty ? '/' : outgoingUri.path)
+          : options.path,
       requestHeaders: Map<String, dynamic>.from(options.headers),
       queryParameters: options.queryParameters.isNotEmpty
           ? Map<String, dynamic>.from(options.queryParameters)
-          : null,
+          : (outgoingUri.hasQuery
+                ? Map<String, dynamic>.from(outgoingUri.queryParameters)
+                : null),
       requestBody: _extractBody(options.data),
       status: HttpRecordStatus.pending,
     );
 
     _controller.addRecord(record);
 
-    if (_controller.shouldBreakOnRequest(options.uri.toString())) {
+    if (_controller.shouldBreakOnRequest(originalUri.toString()) ||
+        _controller.shouldBreakOnRequest(outgoingUri.toString())) {
       final result = await _controller.waitForBreakpoint(requestId);
 
       if (result.isCancelled) {
@@ -75,6 +92,18 @@ class NetworkMonitorInterceptor extends Interceptor {
       }
 
       if (result.hasEdits) {
+        if (result.editedUrl != null && result.editedUrl!.trim().isNotEmpty) {
+          final editedUri = Uri.tryParse(result.editedUrl!.trim());
+          if (editedUri != null &&
+              editedUri.hasScheme &&
+              editedUri.host.isNotEmpty) {
+            RequestUriUtils.applyToOptions(options, editedUri);
+            record.applyOutgoingUri(editedUri);
+            record.queryParameters = editedUri.queryParameters.isEmpty
+                ? null
+                : Map<String, dynamic>.from(editedUri.queryParameters);
+          }
+        }
         if (result.editedHeaders != null) {
           _applyRequestHeaders(options, result.normalizedHeaders!);
           record.requestHeaders
@@ -129,9 +158,13 @@ class NetworkMonitorInterceptor extends Interceptor {
         _controller.updateRecord(requestId, existing);
       }
 
+      final originalUrl =
+          response.requestOptions.extra[_originalUrlKey] as String?;
       if (_controller.shouldBreakOnResponse(
-        response.requestOptions.uri.toString(),
-      )) {
+            response.requestOptions.uri.toString(),
+          ) ||
+          (originalUrl != null &&
+              _controller.shouldBreakOnResponse(originalUrl))) {
         final result = await _controller.waitForBreakpoint('res_$requestId');
 
         if (result.isCancelled) {

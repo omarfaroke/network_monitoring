@@ -1024,6 +1024,114 @@ abstract class NetworkMonitoringLocalizations {
   /// In en, this message translates to:
   /// **'--- Response Body ---'**
   String get shareResponseBody;
+
+  /// No description provided for @originalUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Original URL'**
+  String get originalUrl;
+
+  /// No description provided for @editUrlHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit request URL...'**
+  String get editUrlHint;
+
+  /// No description provided for @invalidUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid URL'**
+  String get invalidUrl;
+
+  /// No description provided for @collapseAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse all'**
+  String get collapseAll;
+
+  /// No description provided for @expandAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand all'**
+  String get expandAll;
+
+  /// No description provided for @addHostOverride.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Host Override'**
+  String get addHostOverride;
+
+  /// No description provided for @appliedHostOverrides.
+  ///
+  /// In en, this message translates to:
+  /// **'Host Overrides'**
+  String get appliedHostOverrides;
+
+  /// No description provided for @noHostOverridesConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'No host overrides configured'**
+  String get noHostOverridesConfigured;
+
+  /// No description provided for @fromHost.
+  ///
+  /// In en, this message translates to:
+  /// **'From host'**
+  String get fromHost;
+
+  /// No description provided for @fromHostHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. api.example.com (empty = any host)'**
+  String get fromHostHint;
+
+  /// No description provided for @toHost.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace with'**
+  String get toHost;
+
+  /// No description provided for @toHostHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. staging.example.com or http://192.168.1.10:8080'**
+  String get toHostHint;
+
+  /// No description provided for @hostOverrideForAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All matching requests'**
+  String get hostOverrideForAll;
+
+  /// No description provided for @hostOverrideForSpecific.
+  ///
+  /// In en, this message translates to:
+  /// **'Specific request'**
+  String get hostOverrideForSpecific;
+
+  /// No description provided for @anyHost.
+  ///
+  /// In en, this message translates to:
+  /// **'Any host'**
+  String get anyHost;
+
+  /// No description provided for @overrideHostForRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Override host (this request)...'**
+  String get overrideHostForRequest;
+
+  /// No description provided for @hostOverrideActiveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} host override(s) active. Matching requests will be rewritten.'**
+  String hostOverrideActiveHint(int count);
+
+  /// No description provided for @noHostOverridesConfiguredDevMode.
+  ///
+  /// In en, this message translates to:
+  /// **'No host overrides configured. Add them from the monitor view.'**
+  String get noHostOverridesConfiguredDevMode;
 }
 
 class _NetworkMonitoringLocalizationsDelegate

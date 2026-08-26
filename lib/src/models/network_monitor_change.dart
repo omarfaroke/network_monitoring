@@ -23,6 +23,9 @@ enum NetworkMonitorChange {
 
   /// [NetworkMonitorController.isRemoteMonitorEnabled] / remote URL.
   remoteMonitor,
+
+  /// Host rewrite rules that replace request domains.
+  hostOverrides,
 }
 
 /// Common subscription groups used by package widgets and host apps.
@@ -49,6 +52,7 @@ abstract final class NetworkMonitorChanges {
     NetworkMonitorChange.breakpoints,
     NetworkMonitorChange.activeBreakpoints,
     NetworkMonitorChange.globalPause,
+    NetworkMonitorChange.hostOverrides,
   };
 
   /// Rebuild when dev mode settings toggles change.
@@ -57,6 +61,7 @@ abstract final class NetworkMonitorChanges {
     NetworkMonitorChange.monitoring,
     NetworkMonitorChange.overlay,
     NetworkMonitorChange.breakpoints,
+    NetworkMonitorChange.hostOverrides,
     NetworkMonitorChange.remoteMonitor,
   };
 }

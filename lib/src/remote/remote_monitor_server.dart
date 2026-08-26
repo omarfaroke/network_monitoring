@@ -5,6 +5,7 @@ import 'dart:io';
 import '../controllers/network_monitor_controller.dart';
 import '../models/breakpoint_edit_result.dart';
 import '../models/breakpoint_model.dart';
+import '../models/host_override_model.dart';
 import '../models/http_record_model.dart';
 import '../models/network_monitor_change.dart';
 import '../models/network_search_scope.dart';
@@ -68,7 +69,8 @@ class RemoteMonitorServer {
       if (change == NetworkMonitorChange.records ||
           change == NetworkMonitorChange.activeBreakpoints ||
           change == NetworkMonitorChange.globalPause ||
-          change == NetworkMonitorChange.breakpoints) {
+          change == NetworkMonitorChange.breakpoints ||
+          change == NetworkMonitorChange.hostOverrides) {
         _scheduleLiveBroadcast();
       }
     });
@@ -279,6 +281,48 @@ class RemoteMonitorServer {
         });
         return;
       }
+      if (path == '/api/host-overrides' && request.method == 'GET') {
+        await _json(request, HttpStatus.ok, {
+          'hostOverrides': _hostOverridesJson(controller),
+        });
+        return;
+      }
+      if (path == '/api/host-overrides' && request.method == 'POST') {
+        final body = await _readJson(request);
+        final toHost = body['toHost'] as String? ?? '';
+        if (toHost.trim().isEmpty) {
+          await _json(request, HttpStatus.badRequest, {
+            'error': 'toHost is required',
+          });
+          return;
+        }
+        controller.addHostOverride(_hostOverrideFromJson(body));
+        await _json(request, HttpStatus.ok, {
+          'ok': true,
+          'hostOverrides': _hostOverridesJson(controller),
+        });
+        return;
+      }
+      final hostOverrideIndexMatch = RegExp(
+        r'^/api/host-overrides/(\d+)$',
+      ).firstMatch(path);
+      if (hostOverrideIndexMatch != null) {
+        final index = int.parse(hostOverrideIndexMatch.group(1)!);
+        if (request.method == 'PATCH') {
+          final body = await _readJson(request);
+          final enabled = body['isEnabled'];
+          if (enabled is bool) {
+            controller.toggleHostOverride(index, enabled);
+          }
+          await _json(request, HttpStatus.ok, {'ok': true});
+          return;
+        }
+        if (request.method == 'DELETE') {
+          controller.removeHostOverride(index);
+          await _json(request, HttpStatus.ok, {'ok': true});
+          return;
+        }
+      }
       if (path == '/api/breakpoints' && request.method == 'POST') {
         final body = await _readJson(request);
         controller.addBreakpoint(_breakpointFromJson(body));
@@ -446,6 +490,7 @@ class RemoteMonitorServer {
           controller.hasEnabledAllEndpointsBreakpoint,
       'monitoringEnabled': controller.isMonitoringEnabled,
       'breakpoints': _breakpointsJson(controller),
+      'hostOverrides': _hostOverridesJson(controller),
       'activeBreakpointIds': controller.activeBreakpointIds,
     };
   }
@@ -459,6 +504,15 @@ class RemoteMonitorServer {
           ...controller.breakpoints[i].toJson(index: i),
           'typeLabel': _breakpointTypeLabel(controller.breakpoints[i].type),
         },
+    ];
+  }
+
+  List<Map<String, dynamic>> _hostOverridesJson(
+    NetworkMonitorController controller,
+  ) {
+    return [
+      for (var i = 0; i < controller.hostOverrides.length; i++)
+        controller.hostOverrides[i].toJson(index: i),
     ];
   }
 
@@ -478,6 +532,7 @@ class RemoteMonitorServer {
       'id': record.id,
       'method': record.method,
       'url': record.url,
+      'originalUrl': record.originalUrl,
       'path': record.path,
       'status': record.status.name,
       'statusCode': record.statusCode,
@@ -525,6 +580,20 @@ class RemoteMonitorServer {
     );
   }
 
+  HostOverrideModel _hostOverrideFromJson(Map<String, dynamic> body) {
+    final target =
+        _enumByName(BreakpointTarget.values, body['target']) ??
+        BreakpointTarget.allEndpoints;
+    final pattern =
+        body['urlPattern'] as String? ?? body['endpointPattern'] as String?;
+    return HostOverrideModel(
+      fromHost: (body['fromHost'] as String?)?.trim() ?? '',
+      toHost: (body['toHost'] as String?)?.trim() ?? '',
+      target: target,
+      urlPattern: target == BreakpointTarget.specificEndpoint ? pattern : null,
+    );
+  }
+
   BreakpointEditResult _editResultFromJson(Map<String, dynamic> body) {
     Map<String, dynamic>? headers;
     if (body.containsKey('editedHeaders')) {
@@ -543,13 +612,22 @@ class RemoteMonitorServer {
       }
     }
 
-    if (headers == null && editedBody == null) {
+    String? editedUrl;
+    if (body.containsKey('editedUrl')) {
+      final raw = body['editedUrl'];
+      if (raw is String && raw.trim().isNotEmpty) {
+        editedUrl = raw.trim();
+      }
+    }
+
+    if (headers == null && editedBody == null && editedUrl == null) {
       return const BreakpointEditResult.continueUnmodified();
     }
     return BreakpointEditResult(
       action: BreakpointAction.continueRequest,
       editedHeaders: headers,
       editedBody: editedBody,
+      editedUrl: editedUrl,
     );
   }
 
