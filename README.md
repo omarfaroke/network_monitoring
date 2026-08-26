@@ -61,7 +61,7 @@ Add the package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  network_monitoring: ^2.3.0
+  network_monitoring: ^2.4.0
   # share_plus: ^13.1.0   # if you want to use share_plus for sharing text from the monitoring UI
 ```
 

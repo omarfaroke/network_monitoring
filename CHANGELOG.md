@@ -2,6 +2,18 @@
 
 All notable changes to this package are documented in this file.
 
+## [2.4.0] - 2026-08-26
+
+### Added
+
+- Host override: rewrite the host, scheme, and port of matching outgoing requests (all traffic or a specific URL pattern), in-app and in the remote UI
+- Request breakpoint URL editing (in-app and remote continue payload)
+- Overview shows the full request: complete URL, original URL when rewritten, query, request headers, and request body
+- Line numbers on request/response JSON and text blocks, kept visible while the body scrolls horizontally
+- JSON object/array folding (per-block collapse/expand all, plus per-object arrows)
+- Remote JSON table view with expandable nested key/value rows (no depth limit)
+- Sticky Request/Response body header in the remote detail pane
+
 ## [2.3.0] - 2026-08-19
 
 ### Added
@@ -82,6 +94,7 @@ Initial release.
 - English and Arabic localizations
 - Example notes app (`example/`) demonstrating Dio integration, JWT auth, and dev-mode unlock
 
+[2.4.0]: https://github.com/omarfaroke/network_monitoring/releases/tag/v2.4.0
 [2.3.0]: https://github.com/omarfaroke/network_monitoring/releases/tag/v2.3.0
 [2.2.0]: https://github.com/omarfaroke/network_monitoring/releases/tag/v2.2.0
 [2.1.0]: https://github.com/omarfaroke/network_monitoring/releases/tag/v2.1.0

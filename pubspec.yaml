@@ -1,6 +1,6 @@
 name: network_monitoring
 description: Simple Package for Real-time HTTP network monitoring for Flutter apps with breakpoints, dev mode, and a floating overlay.
-version: 2.3.0
+version: 2.4.0
 homepage: https://github.com/omarfaroke/network_monitoring
 repository: https://github.com/omarfaroke/network_monitoring
 issue_tracker: https://github.com/omarfaroke/network_monitoring/issues
