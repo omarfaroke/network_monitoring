@@ -32,6 +32,10 @@ class NetworkMonitorOverviewTab extends StatelessWidget {
       child: ListView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.all(16),
+        // Mount all detail sections while searching so the active block key exists.
+        cacheExtent: query != null && query.trim().isNotEmpty
+            ? double.infinity
+            : null,
         children: [
           NmInfoCard(
             title: l10n.general,
@@ -211,6 +215,9 @@ class NetworkMonitorRequestTab extends StatelessWidget {
     return ListView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.all(16),
+      cacheExtent: query != null && query.trim().isNotEmpty
+          ? double.infinity
+          : null,
       children: [
         if (record.queryParameters != null &&
             record.queryParameters!.isNotEmpty) ...[
@@ -262,6 +269,9 @@ class NetworkMonitorResponseTab extends StatelessWidget {
     return ListView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.all(16),
+      cacheExtent: query != null && query.trim().isNotEmpty
+          ? double.infinity
+          : null,
       children: [
         NmCodeBlock(
           title: l10n.responseBody,
@@ -295,6 +305,9 @@ class NetworkMonitorHeadersTab extends StatelessWidget {
     return ListView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.all(16),
+      cacheExtent: query != null && query.trim().isNotEmpty
+          ? double.infinity
+          : null,
       children: [
         NmCodeBlock(
           title: l10n.requestHeaders,

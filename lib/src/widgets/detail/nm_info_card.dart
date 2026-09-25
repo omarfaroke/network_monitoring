@@ -116,22 +116,24 @@ class NmInfoItemRow extends StatelessWidget {
                     overflow: overflow,
                     softWrap: true,
                   )
-                : NmHighlightedText(
-                    text: item.value,
-                    query: query,
-                    style: valueStyle,
-                    maxLines: item.maxLines,
-                    overflow: overflow,
-                    wrapAnywhere: item.wrapAnywhere,
-                    matchIndexOffset: blockId != null && navigation != null
-                        ? navigation.matchIndexOffset(blockId)
-                        : 0,
-                    activeGlobalMatchIndex: navigation?.activeGlobalIndex,
-                    activeMatchKey: blockId != null &&
+                : KeyedSubtree(
+                    key: blockId != null &&
                             navigation != null &&
                             navigation.isActiveBlock(blockId)
                         ? navigation.activeMatchKey
                         : null,
+                    child: NmHighlightedText(
+                      text: item.value,
+                      query: query,
+                      style: valueStyle,
+                      maxLines: item.maxLines,
+                      overflow: overflow,
+                      wrapAnywhere: item.wrapAnywhere,
+                      matchIndexOffset: blockId != null && navigation != null
+                          ? navigation.matchIndexOffset(blockId)
+                          : 0,
+                      activeGlobalMatchIndex: navigation?.activeGlobalIndex,
+                    ),
                   ),
           ),
           if (item.copyable)

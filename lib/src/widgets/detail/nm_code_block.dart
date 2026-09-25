@@ -110,6 +110,10 @@ class _NmCodeBlockState extends State<NmCodeBlock> {
     final navigation = widget.searchNavigation;
     final blockId = widget.searchBlockId;
     final query = navigation?.query ?? widget.searchQuery;
+    final isActiveBlock =
+        blockId != null &&
+        navigation != null &&
+        navigation.isActiveBlock(blockId);
     final lines = JsonFoldUtils.visibleLinesFrom(
       rawLines: _rawLines,
       ranges: _canFold ? _foldRanges : const [],
@@ -118,7 +122,10 @@ class _NmCodeBlockState extends State<NmCodeBlock> {
 
     return Directionality(
       textDirection: TextDirection.ltr,
+      // Key the block (not an inner line) so ensureVisible only scrolls the
+      // outer tab list. Inner line scrolling is handled by _VirtualJsonPane.
       child: Container(
+        key: isActiveBlock ? navigation.activeMatchKey : null,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: NmTheme.fieldBackground(context),
@@ -188,13 +195,10 @@ class _NmCodeBlockState extends State<NmCodeBlock> {
                 matchIndexOffset: blockId != null && navigation != null
                     ? navigation.matchIndexOffset(blockId)
                     : 0,
-                activeGlobalMatchIndex: navigation?.activeGlobalIndex,
-                activeMatchKey:
-                    blockId != null &&
-                        navigation != null &&
-                        navigation.isActiveBlock(blockId)
-                    ? navigation.activeMatchKey
+                activeGlobalMatchIndex: isActiveBlock
+                    ? navigation.activeGlobalIndex
                     : null,
+                scrollToActiveMatch: isActiveBlock,
                 fontSize: _fontSize,
                 lineHeight: _lineHeight,
                 rowHeight: _rowHeight,
@@ -290,7 +294,7 @@ class _VirtualJsonPane extends StatefulWidget {
   final String? searchQuery;
   final int matchIndexOffset;
   final int? activeGlobalMatchIndex;
-  final GlobalKey? activeMatchKey;
+  final bool scrollToActiveMatch;
   final double fontSize;
   final double lineHeight;
   final double rowHeight;
@@ -304,7 +308,7 @@ class _VirtualJsonPane extends StatefulWidget {
     this.searchQuery,
     this.matchIndexOffset = 0,
     this.activeGlobalMatchIndex,
-    this.activeMatchKey,
+    this.scrollToActiveMatch = false,
   });
 
   @override
@@ -315,12 +319,27 @@ class _VirtualJsonPaneState extends State<_VirtualJsonPane> {
   final _gutterController = ScrollController();
   final _codeController = ScrollController();
   bool _syncing = false;
+  int? _pendingScrollMatchIndex;
 
   @override
   void initState() {
     super.initState();
     _gutterController.addListener(_onGutterScroll);
     _codeController.addListener(_onCodeScroll);
+    _scheduleScrollToActiveMatch(widget.activeGlobalMatchIndex);
+  }
+
+  @override
+  void didUpdateWidget(covariant _VirtualJsonPane oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final matchChanged =
+        oldWidget.activeGlobalMatchIndex != widget.activeGlobalMatchIndex ||
+        oldWidget.matchIndexOffset != widget.matchIndexOffset ||
+        oldWidget.searchQuery != widget.searchQuery ||
+        oldWidget.scrollToActiveMatch != widget.scrollToActiveMatch;
+    if (matchChanged) {
+      _scheduleScrollToActiveMatch(widget.activeGlobalMatchIndex);
+    }
   }
 
   @override
@@ -344,6 +363,52 @@ class _VirtualJsonPaneState extends State<_VirtualJsonPane> {
     if ((to.offset - target).abs() < 0.5) return;
     _syncing = true;
     to.jumpTo(target);
+    _syncing = false;
+  }
+
+  void _scheduleScrollToActiveMatch(int? matchIndex) {
+    if (!widget.scrollToActiveMatch || matchIndex == null) {
+      _pendingScrollMatchIndex = null;
+      return;
+    }
+    _pendingScrollMatchIndex = matchIndex;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_pendingScrollMatchIndex != matchIndex) return;
+      _scrollCodeToActiveMatch(matchIndex);
+    });
+  }
+
+  void _scrollCodeToActiveMatch(int activeGlobalIndex) {
+    if (!_codeController.hasClients) return;
+    if (!widget.scrollToActiveMatch) return;
+
+    final query = widget.searchQuery?.trim() ?? '';
+    if (query.isEmpty || widget.lines.isEmpty) return;
+
+    final lineIndex = _lineIndexForMatch(
+      widget.lines,
+      query,
+      widget.matchIndexOffset,
+      activeGlobalIndex,
+    );
+    if (lineIndex < 0) return;
+
+    final viewport = _codeController.position.viewportDimension;
+    final maxExtent = _codeController.position.maxScrollExtent;
+    final rawTarget = lineIndex * widget.rowHeight - viewport * 0.25;
+    final target = rawTarget.clamp(0.0, maxExtent);
+    if ((target - _codeController.offset).abs() < 0.5) return;
+
+    _syncing = true;
+    _codeController.jumpTo(target);
+    if (_gutterController.hasClients) {
+      final gutterTarget = target.clamp(
+        0.0,
+        _gutterController.position.maxScrollExtent,
+      );
+      _gutterController.jumpTo(gutterTarget);
+    }
     _syncing = false;
   }
 
@@ -472,15 +537,6 @@ class _VirtualJsonPaneState extends State<_VirtualJsonPane> {
                                 maxLines: 1,
                               );
                             }
-                            final isActiveLine =
-                                widget.activeMatchKey != null &&
-                                widget.activeGlobalMatchIndex != null &&
-                                _lineContainsMatch(
-                                  text,
-                                  query,
-                                  matchOffsets![index],
-                                  widget.activeGlobalMatchIndex!,
-                                );
                             return NmHighlightedText(
                               text: text,
                               query: query,
@@ -490,9 +546,6 @@ class _VirtualJsonPaneState extends State<_VirtualJsonPane> {
                               matchIndexOffset: matchOffsets![index],
                               activeGlobalMatchIndex:
                                   widget.activeGlobalMatchIndex,
-                              activeMatchKey: isActiveLine
-                                  ? widget.activeMatchKey
-                                  : null,
                             );
                           },
                         ),
@@ -543,6 +596,26 @@ List<int> _matchOffsetsFor(
     acc += _countMatches(lines[i].text, q);
   }
   return offsets;
+}
+
+int _lineIndexForMatch(
+  List<JsonFoldLine> lines,
+  String query,
+  int startOffset,
+  int activeGlobalIndex,
+) {
+  final offsets = _matchOffsetsFor(lines, query, startOffset);
+  for (var i = 0; i < lines.length; i++) {
+    if (_lineContainsMatch(
+      lines[i].text,
+      query,
+      offsets[i],
+      activeGlobalIndex,
+    )) {
+      return i;
+    }
+  }
+  return -1;
 }
 
 int _countMatches(String text, String lowerQuery) {

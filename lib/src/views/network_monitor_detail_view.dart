@@ -244,9 +244,12 @@ class _NetworkMonitorDetailViewState extends State<NetworkMonitorDetailView>
   }
 
   Future<void> _ensureActiveMatchVisible(int requestId) async {
-    for (var attempt = 0; attempt < 8; attempt++) {
+    // Wait for the active block to mount (and for code panes to jump to the
+    // match line). ensureVisible targets the block itself — never a nested
+    // virtualized line — so the outer list does not scroll the data away.
+    for (var attempt = 0; attempt < 12; attempt++) {
       await Future<void>.delayed(
-        Duration(milliseconds: attempt == 0 ? 16 : 32),
+        Duration(milliseconds: attempt == 0 ? 32 : 40),
       );
       if (!mounted || requestId != _scrollRequestId) return;
 
@@ -255,7 +258,7 @@ class _NetworkMonitorDetailViewState extends State<NetworkMonitorDetailView>
 
       await Scrollable.ensureVisible(
         matchContext,
-        alignment: 0.25,
+        alignment: 0.1,
         alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeInOut,
