@@ -1,6 +1,39 @@
 import '../models/http_record_model.dart';
 import '../models/network_search_scope.dart';
 
+/// Options for find-in-page style matching.
+class DetailSearchOptions {
+  /// When `true`, matching is case-sensitive.
+  final bool matchCase;
+
+  /// When `true`, only whole-word matches are counted.
+  final bool matchWholeWord;
+
+  const DetailSearchOptions({
+    this.matchCase = false,
+    this.matchWholeWord = false,
+  });
+
+  static const defaults = DetailSearchOptions();
+
+  DetailSearchOptions copyWith({bool? matchCase, bool? matchWholeWord}) {
+    return DetailSearchOptions(
+      matchCase: matchCase ?? this.matchCase,
+      matchWholeWord: matchWholeWord ?? this.matchWholeWord,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DetailSearchOptions &&
+          matchCase == other.matchCase &&
+          matchWholeWord == other.matchWholeWord;
+
+  @override
+  int get hashCode => Object.hash(matchCase, matchWholeWord);
+}
+
 /// Search helpers for [HttpRecordModel] against [NetworkSearchScope]s.
 abstract final class HttpRecordSearchUtils {
   HttpRecordSearchUtils._();
@@ -24,21 +57,38 @@ abstract final class HttpRecordSearchUtils {
     return false;
   }
 
-  /// Count of case-insensitive substring occurrences of [query] in [text].
-  static int countMatches(String text, String query) {
-    final normalizedQuery = query.trim().toLowerCase();
-    if (normalizedQuery.isEmpty) return 0;
+  /// Start indexes of each occurrence of [query] in [text].
+  static List<int> findMatchStarts(
+    String text,
+    String query, {
+    DetailSearchOptions options = DetailSearchOptions.defaults,
+  }) {
+    final needle = query.trim();
+    if (needle.isEmpty || text.isEmpty) return const [];
 
-    final haystack = text.toLowerCase();
-    var count = 0;
+    final haystack = options.matchCase ? text : text.toLowerCase();
+    final pattern = options.matchCase ? needle : needle.toLowerCase();
+    final starts = <int>[];
     var start = 0;
     while (true) {
-      final index = haystack.indexOf(normalizedQuery, start);
+      final index = haystack.indexOf(pattern, start);
       if (index < 0) break;
-      count++;
-      start = index + normalizedQuery.length;
+      if (!options.matchWholeWord ||
+          _isWholeWordAt(text, index, needle.length)) {
+        starts.add(index);
+      }
+      start = index + pattern.length;
     }
-    return count;
+    return starts;
+  }
+
+  /// Count of substring occurrences of [query] in [text].
+  static int countMatches(
+    String text,
+    String query, {
+    DetailSearchOptions options = DetailSearchOptions.defaults,
+  }) {
+    return findMatchStarts(text, query, options: options).length;
   }
 
   /// Whether [text] contains [query] (case-insensitive).
@@ -61,6 +111,22 @@ abstract final class HttpRecordSearchUtils {
       buffer.write(chunk);
     }
     return buffer.toString();
+  }
+
+  static final RegExp _wordCharPattern = RegExp(
+    r'[\p{L}\p{N}\p{M}_]',
+    unicode: true,
+  );
+
+  static bool _isWordChar(int unit) {
+    return _wordCharPattern.hasMatch(String.fromCharCode(unit));
+  }
+
+  static bool _isWholeWordAt(String text, int start, int length) {
+    if (start > 0 && _isWordChar(text.codeUnitAt(start - 1))) return false;
+    final end = start + length;
+    if (end < text.length && _isWordChar(text.codeUnitAt(end))) return false;
+    return true;
   }
 
   static bool _matchesScope(

@@ -136,6 +136,12 @@ class NetworkMonitoringLocalizationsAr extends NetworkMonitoringLocalizations {
   String get searchNext => 'المطابقة التالية';
 
   @override
+  String get searchMatchCase => 'مطابقة حالة الأحرف';
+
+  @override
+  String get searchMatchWholeWord => 'مطابقة الكلمة كاملة';
+
+  @override
   String get filterAll => 'الكل';
 
   @override

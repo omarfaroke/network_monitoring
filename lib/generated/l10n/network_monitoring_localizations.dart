@@ -329,6 +329,18 @@ abstract class NetworkMonitoringLocalizations {
   /// **'Next match'**
   String get searchNext;
 
+  /// No description provided for @searchMatchCase.
+  ///
+  /// In en, this message translates to:
+  /// **'Match Case'**
+  String get searchMatchCase;
+
+  /// No description provided for @searchMatchWholeWord.
+  ///
+  /// In en, this message translates to:
+  /// **'Match Whole Word'**
+  String get searchMatchWholeWord;
+
   /// No description provided for @filterAll.
   ///
   /// In en, this message translates to:

@@ -38,6 +38,8 @@
   "searchNoMatches": "لا توجد نتائج",
   "searchPrevious": "المطابقة السابقة",
   "searchNext": "المطابقة التالية",
+  "searchMatchCase": "مطابقة حالة الأحرف",
+  "searchMatchWholeWord": "مطابقة الكلمة كاملة",
   "filterAll": "الكل",
   "noHttpRequestsRecorded": "لا توجد طلبات HTTP مسجلة",
   "requestsWillAppearWhenActive": "ستظهر الطلبات هنا عند تفعيل المراقبة",

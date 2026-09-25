@@ -39,6 +39,7 @@ class _NetworkMonitorDetailViewState extends State<NetworkMonitorDetailView>
   String _searchQuery = '';
   int _matchCursor = 0;
   int _scrollRequestId = 0;
+  DetailSearchOptions _searchOptions = DetailSearchOptions.defaults;
 
   /// When `true`, search is limited to the currently selected tab.
   bool _followCurrentTab = true;
@@ -54,6 +55,7 @@ class _NetworkMonitorDetailViewState extends State<NetworkMonitorDetailView>
     record,
     _searchQuery,
     tabIndexes: _effectiveTabScopes,
+    options: _searchOptions,
   );
 
   DetailSearchNavigation? get _searchNavigation {
@@ -64,6 +66,7 @@ class _NetworkMonitorDetailViewState extends State<NetworkMonitorDetailView>
       activeGlobalIndex: _matchCursor,
       activeMatchKey: _activeMatchKey,
       matchInfo: _matchInfo,
+      options: _searchOptions,
     );
   }
 
@@ -138,6 +141,7 @@ class _NetworkMonitorDetailViewState extends State<NetworkMonitorDetailView>
     _matchCursor = 0;
     _showTabScopes = false;
     _followCurrentTab = true;
+    _searchOptions = DetailSearchOptions.defaults;
     _searchController.clear();
   }
 
@@ -154,6 +158,26 @@ class _NetworkMonitorDetailViewState extends State<NetworkMonitorDetailView>
     if (!_followCurrentTab && _tabController.index != targetTab) {
       _tabController.animateTo(targetTab);
     }
+    _scrollToActiveMatch(forceTab: true);
+  }
+
+  void _toggleMatchCase() {
+    setState(() {
+      _searchOptions = _searchOptions.copyWith(
+        matchCase: !_searchOptions.matchCase,
+      );
+      _matchCursor = 0;
+    });
+    _scrollToActiveMatch(forceTab: true);
+  }
+
+  void _toggleMatchWholeWord() {
+    setState(() {
+      _searchOptions = _searchOptions.copyWith(
+        matchWholeWord: !_searchOptions.matchWholeWord,
+      );
+      _matchCursor = 0;
+    });
     _scrollToActiveMatch(forceTab: true);
   }
 
@@ -338,6 +362,10 @@ class _NetworkMonitorDetailViewState extends State<NetworkMonitorDetailView>
                 currentMatchIndex: matchInfo.isEmpty ? 0 : _matchCursor,
                 hintText: l10n.searchInDetailsHint,
                 autofocus: _searchAutofocus,
+                matchCase: _searchOptions.matchCase,
+                matchWholeWord: _searchOptions.matchWholeWord,
+                onToggleMatchCase: _toggleMatchCase,
+                onToggleMatchWholeWord: _toggleMatchWholeWord,
                 followCurrentTab: _followCurrentTab,
                 selectedTabScopes: _effectiveTabScopes,
                 showTabScopes: _showTabScopes,

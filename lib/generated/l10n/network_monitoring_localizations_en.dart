@@ -136,6 +136,12 @@ class NetworkMonitoringLocalizationsEn extends NetworkMonitoringLocalizations {
   String get searchNext => 'Next match';
 
   @override
+  String get searchMatchCase => 'Match Case';
+
+  @override
+  String get searchMatchWholeWord => 'Match Whole Word';
+
+  @override
   String get filterAll => 'ALL';
 
   @override

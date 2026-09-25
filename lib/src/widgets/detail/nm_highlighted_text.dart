@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/nm_localizations.dart';
 import '../../theme/nm_theme.dart';
+import '../../utils/http_record_search_utils.dart';
 
-/// Highlights case-insensitive [query] matches inside [text].
+/// Highlights [query] matches inside [text] using [options].
 ///
 /// When [activeGlobalMatchIndex] points at a match in this text, that match is
 /// wrapped with [activeMatchKey] so callers can scroll it into view.
@@ -20,6 +21,7 @@ class NmHighlightedText extends StatelessWidget {
   final int? activeGlobalMatchIndex;
   final GlobalKey? activeMatchKey;
   final bool wrapAnywhere;
+  final DetailSearchOptions options;
 
   const NmHighlightedText({
     super.key,
@@ -35,6 +37,7 @@ class NmHighlightedText extends StatelessWidget {
     this.activeGlobalMatchIndex,
     this.activeMatchKey,
     this.wrapAnywhere = false,
+    this.options = DetailSearchOptions.defaults,
   });
 
   @override
@@ -64,6 +67,7 @@ class NmHighlightedText extends StatelessWidget {
     final spans = _buildSpans(
       text: text,
       query: query,
+      options: options,
       baseStyle: baseStyle,
       highlightStyle: markStyle,
       activeHighlightStyle: activeStyle,
@@ -92,6 +96,7 @@ class NmHighlightedText extends StatelessWidget {
   static List<InlineSpan> _buildSpans({
     required String text,
     required String query,
+    required DetailSearchOptions options,
     required TextStyle baseStyle,
     required TextStyle highlightStyle,
     required TextStyle activeHighlightStyle,
@@ -107,22 +112,21 @@ class NmHighlightedText extends StatelessWidget {
       return [TextSpan(text: display(text), style: baseStyle)];
     }
 
-    final lowerText = text.toLowerCase();
-    final lowerQuery = normalizedQuery.toLowerCase();
+    final matchStarts = HttpRecordSearchUtils.findMatchStarts(
+      text,
+      normalizedQuery,
+      options: options,
+    );
+    if (matchStarts.isEmpty) {
+      return [TextSpan(text: display(text), style: baseStyle)];
+    }
+
     final spans = <InlineSpan>[];
     var start = 0;
-    var localMatchIndex = 0;
-
-    while (true) {
-      final index = lowerText.indexOf(lowerQuery, start);
-      if (index < 0) {
-        if (start < text.length) {
-          spans.add(
-            TextSpan(text: display(text.substring(start)), style: baseStyle),
-          );
-        }
-        break;
-      }
+    for (var localMatchIndex = 0;
+        localMatchIndex < matchStarts.length;
+        localMatchIndex++) {
+      final index = matchStarts[localMatchIndex];
       if (index > start) {
         spans.add(
           TextSpan(
@@ -132,7 +136,10 @@ class NmHighlightedText extends StatelessWidget {
         );
       }
 
-      final matchText = text.substring(index, index + lowerQuery.length);
+      final matchText = text.substring(
+        index,
+        index + normalizedQuery.length,
+      );
       final globalIndex = matchIndexOffset + localMatchIndex;
       final isActive = activeGlobalMatchIndex == globalIndex;
       final displayMatch = display(matchText);
@@ -158,8 +165,13 @@ class NmHighlightedText extends StatelessWidget {
         );
       }
 
-      localMatchIndex++;
-      start = index + lowerQuery.length;
+      start = index + normalizedQuery.length;
+    }
+
+    if (start < text.length) {
+      spans.add(
+        TextSpan(text: display(text.substring(start)), style: baseStyle),
+      );
     }
 
     return spans.isEmpty
@@ -188,6 +200,10 @@ class NmDetailSearchBar extends StatelessWidget {
   final VoidCallback? onNext;
   final String hintText;
   final bool autofocus;
+  final bool matchCase;
+  final bool matchWholeWord;
+  final VoidCallback onToggleMatchCase;
+  final VoidCallback onToggleMatchWholeWord;
   final bool followCurrentTab;
   final Set<int> selectedTabScopes;
   final bool showTabScopes;
@@ -203,6 +219,10 @@ class NmDetailSearchBar extends StatelessWidget {
     required this.onClose,
     required this.matchCount,
     required this.hintText,
+    required this.matchCase,
+    required this.matchWholeWord,
+    required this.onToggleMatchCase,
+    required this.onToggleMatchWholeWord,
     required this.followCurrentTab,
     required this.selectedTabScopes,
     required this.showTabScopes,
@@ -291,6 +311,19 @@ class NmDetailSearchBar extends StatelessWidget {
                       ),
                     ),
                   ),
+                ),
+                _SearchFlagToggle(
+                  label: 'Aa',
+                  tooltip: l10n.searchMatchCase,
+                  isSelected: matchCase,
+                  onPressed: onToggleMatchCase,
+                ),
+                _SearchFlagToggle(
+                  label: 'ab',
+                  tooltip: l10n.searchMatchWholeWord,
+                  isSelected: matchWholeWord,
+                  onPressed: onToggleMatchWholeWord,
+                  wholeWordStyle: true,
                 ),
                 if (hasQuery) ...[
                   Text(
@@ -418,6 +451,65 @@ class NmDetailSearchBar extends StatelessWidget {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Text toggle (Aa / ab) for find options.
+class _SearchFlagToggle extends StatelessWidget {
+  final String label;
+  final String tooltip;
+  final bool isSelected;
+  final VoidCallback onPressed;
+  final bool wholeWordStyle;
+
+  const _SearchFlagToggle({
+    required this.label,
+    required this.tooltip,
+    required this.isSelected,
+    required this.onPressed,
+    this.wholeWordStyle = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isSelected
+        ? NmTheme.primary(context)
+        : NmTheme.onSurfaceVariant(context);
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          width: 28,
+          height: 28,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isSelected
+                ? NmTheme.primary(context).withValues(alpha: 0.12)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: isSelected
+                  ? NmTheme.primary(context).withValues(alpha: 0.45)
+                  : Colors.transparent,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              height: 1,
+              color: color,
+              decoration: wholeWordStyle ? TextDecoration.underline : null,
+              decorationColor: color,
+              decorationThickness: 1.6,
+            ),
+          ),
         ),
       ),
     );

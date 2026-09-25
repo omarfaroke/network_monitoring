@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../l10n/nm_localizations.dart';
+import '../../utils/http_record_search_utils.dart';
 import '../../utils/json_fold_utils.dart';
 import '../../utils/nm_share.dart';
 import '../../theme/nm_theme.dart';
@@ -192,6 +193,7 @@ class _NmCodeBlockState extends State<NmCodeBlock> {
                 lines: lines,
                 onToggleFold: _canFold ? _toggleFold : null,
                 searchQuery: query,
+                searchOptions: navigation?.options ?? DetailSearchOptions.defaults,
                 matchIndexOffset: blockId != null && navigation != null
                     ? navigation.matchIndexOffset(blockId)
                     : 0,
@@ -292,6 +294,7 @@ class _VirtualJsonPane extends StatefulWidget {
   final List<JsonFoldLine> lines;
   final ValueChanged<int>? onToggleFold;
   final String? searchQuery;
+  final DetailSearchOptions searchOptions;
   final int matchIndexOffset;
   final int? activeGlobalMatchIndex;
   final bool scrollToActiveMatch;
@@ -306,6 +309,7 @@ class _VirtualJsonPane extends StatefulWidget {
     required this.lineHeight,
     required this.rowHeight,
     this.searchQuery,
+    this.searchOptions = DetailSearchOptions.defaults,
     this.matchIndexOffset = 0,
     this.activeGlobalMatchIndex,
     this.scrollToActiveMatch = false,
@@ -336,6 +340,7 @@ class _VirtualJsonPaneState extends State<_VirtualJsonPane> {
         oldWidget.activeGlobalMatchIndex != widget.activeGlobalMatchIndex ||
         oldWidget.matchIndexOffset != widget.matchIndexOffset ||
         oldWidget.searchQuery != widget.searchQuery ||
+        oldWidget.searchOptions != widget.searchOptions ||
         oldWidget.scrollToActiveMatch != widget.scrollToActiveMatch;
     if (matchChanged) {
       _scheduleScrollToActiveMatch(widget.activeGlobalMatchIndex);
@@ -391,6 +396,7 @@ class _VirtualJsonPaneState extends State<_VirtualJsonPane> {
       query,
       widget.matchIndexOffset,
       activeGlobalIndex,
+      widget.searchOptions,
     );
     if (lineIndex < 0) return;
 
@@ -450,7 +456,12 @@ class _VirtualJsonPaneState extends State<_VirtualJsonPane> {
     );
     final matchOffsets = query.isEmpty
         ? null
-        : _matchOffsetsFor(lines, query, widget.matchIndexOffset);
+        : _matchOffsetsFor(
+            lines,
+            query,
+            widget.matchIndexOffset,
+            widget.searchOptions,
+          );
 
     return Container(
       width: double.infinity,
@@ -546,6 +557,7 @@ class _VirtualJsonPaneState extends State<_VirtualJsonPane> {
                               matchIndexOffset: matchOffsets![index],
                               activeGlobalMatchIndex:
                                   widget.activeGlobalMatchIndex,
+                              options: widget.searchOptions,
                             );
                           },
                         ),
@@ -587,13 +599,17 @@ List<int> _matchOffsetsFor(
   List<JsonFoldLine> lines,
   String query,
   int startOffset,
+  DetailSearchOptions options,
 ) {
   final offsets = List<int>.filled(lines.length, 0);
   var acc = startOffset;
-  final q = query.toLowerCase();
   for (var i = 0; i < lines.length; i++) {
     offsets[i] = acc;
-    acc += _countMatches(lines[i].text, q);
+    acc += HttpRecordSearchUtils.countMatches(
+      lines[i].text,
+      query,
+      options: options,
+    );
   }
   return offsets;
 }
@@ -603,41 +619,18 @@ int _lineIndexForMatch(
   String query,
   int startOffset,
   int activeGlobalIndex,
+  DetailSearchOptions options,
 ) {
-  final offsets = _matchOffsetsFor(lines, query, startOffset);
+  final offsets = _matchOffsetsFor(lines, query, startOffset, options);
   for (var i = 0; i < lines.length; i++) {
-    if (_lineContainsMatch(
+    final local = activeGlobalIndex - offsets[i];
+    if (local < 0) continue;
+    final count = HttpRecordSearchUtils.countMatches(
       lines[i].text,
       query,
-      offsets[i],
-      activeGlobalIndex,
-    )) {
-      return i;
-    }
+      options: options,
+    );
+    if (local < count) return i;
   }
   return -1;
-}
-
-int _countMatches(String text, String lowerQuery) {
-  if (lowerQuery.isEmpty || text.isEmpty) return 0;
-  final lower = text.toLowerCase();
-  var count = 0;
-  var start = 0;
-  while (true) {
-    final index = lower.indexOf(lowerQuery, start);
-    if (index < 0) return count;
-    count++;
-    start = index + lowerQuery.length;
-  }
-}
-
-bool _lineContainsMatch(
-  String text,
-  String query,
-  int lineOffset,
-  int activeGlobalIndex,
-) {
-  final local = activeGlobalIndex - lineOffset;
-  if (local < 0) return false;
-  return local < _countMatches(text, query.toLowerCase());
 }

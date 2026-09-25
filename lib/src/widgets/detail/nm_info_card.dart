@@ -133,6 +133,8 @@ class NmInfoItemRow extends StatelessWidget {
                           ? navigation.matchIndexOffset(blockId)
                           : 0,
                       activeGlobalMatchIndex: navigation?.activeGlobalIndex,
+                      options:
+                          navigation?.options ?? DetailSearchOptions.defaults,
                     ),
                   ),
           ),

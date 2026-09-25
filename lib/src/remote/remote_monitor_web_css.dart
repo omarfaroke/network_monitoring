@@ -290,6 +290,14 @@ body {
 .detail-body { flex: 1; overflow: auto; padding: 16px; }
 .detail-search { padding: 8px 4px 12px; }
 .detail-search-nav { display: flex; align-items: center; gap: 4px; margin-top: 8px; }
+.icon-btn.text-flag {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+.icon-btn.text-flag.whole-word { text-decoration: underline; text-underline-offset: 2px; }
 .block {
   background: var(--field);
   border: 1px solid var(--border);

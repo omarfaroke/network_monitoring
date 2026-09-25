@@ -75,6 +75,8 @@
   "searchNoMatches": "No matches",
   "searchPrevious": "Previous match",
   "searchNext": "Next match",
+  "searchMatchCase": "Match Case",
+  "searchMatchWholeWord": "Match Whole Word",
   "filterAll": "ALL",
   "noHttpRequestsRecorded": "No HTTP requests recorded",
   "requestsWillAppearWhenActive": "Requests will appear here when monitoring is active",

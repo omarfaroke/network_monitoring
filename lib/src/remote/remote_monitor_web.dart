@@ -83,6 +83,8 @@ abstract final class RemoteMonitorWeb {
               </div>
               <div class="detail-search-nav">
                 <span id="detailMatchLabel" class="muted"></span>
+                <button id="matchCaseBtn" class="icon-btn tiny text-flag" title="Match Case" aria-label="Match Case" aria-pressed="false">Aa</button>
+                <button id="matchWordBtn" class="icon-btn tiny text-flag whole-word" title="Match Whole Word" aria-label="Match Whole Word" aria-pressed="false">ab</button>
                 <button id="prevMatch" class="icon-btn tiny" title="Previous match" aria-label="Previous match"></button>
                 <button id="nextMatch" class="icon-btn tiny" title="Next match" aria-label="Next match"></button>
                 <button id="detailScopesToggle" class="icon-btn tiny" title="Search in" aria-label="Search in"></button>

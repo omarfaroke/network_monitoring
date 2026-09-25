@@ -3,6 +3,8 @@ import 'package:flutter/widgets.dart';
 import '../../models/http_record_model.dart';
 import '../../utils/http_record_search_utils.dart';
 
+export '../../utils/http_record_search_utils.dart' show DetailSearchOptions;
+
 /// A single find-in-page match inside the detail view.
 class DetailSearchMatch {
   final int globalIndex;
@@ -148,6 +150,7 @@ class DetailSearchMatchInfo {
     HttpRecordModel record,
     String query, {
     Set<int>? tabIndexes,
+    DetailSearchOptions options = DetailSearchOptions.defaults,
   }) {
     final normalized = query.trim();
     if (normalized.isEmpty) {
@@ -159,7 +162,11 @@ class DetailSearchMatchInfo {
       if (tabIndexes != null && !tabIndexes.contains(block.tabIndex)) {
         continue;
       }
-      final count = HttpRecordSearchUtils.countMatches(block.text, normalized);
+      final count = HttpRecordSearchUtils.countMatches(
+        block.text,
+        normalized,
+        options: options,
+      );
       for (var i = 0; i < count; i++) {
         matches.add(
           DetailSearchMatch(
@@ -199,12 +206,14 @@ class DetailSearchNavigation {
   final int activeGlobalIndex;
   final GlobalKey activeMatchKey;
   final DetailSearchMatchInfo matchInfo;
+  final DetailSearchOptions options;
 
   const DetailSearchNavigation({
     required this.query,
     required this.activeGlobalIndex,
     required this.activeMatchKey,
     required this.matchInfo,
+    this.options = DetailSearchOptions.defaults,
   });
 
   DetailSearchMatch? get activeMatch => matchInfo.matchAt(activeGlobalIndex);

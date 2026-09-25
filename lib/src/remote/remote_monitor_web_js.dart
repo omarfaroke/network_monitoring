@@ -53,6 +53,8 @@ const _kAppJs = r'''
     tab: 0,
     detailQuery: '',
     detailSearchVisible: false,
+    matchCase: false,
+    matchWholeWord: false,
     showDetailScopes: false,
     followCurrentTab: true,
     detailTabScopes: new Set([0, 1, 2, 3]),
@@ -190,43 +192,57 @@ const _kAppJs = r'''
       .replaceAll('"', '&quot;');
   }
 
+  function isWordChar(ch) {
+    return !!ch && /[\p{L}\p{N}\p{M}_]/u.test(ch);
+  }
+
+  function isWholeWordAt(text, start, length) {
+    const before = start > 0 ? text[start - 1] : '';
+    const after = start + length < text.length ? text[start + length] : '';
+    return !isWordChar(before) && !isWordChar(after);
+  }
+
+  function findMatchStarts(text, query) {
+    const q = (query || '').trim();
+    if (!q) return [];
+    const src = String(text);
+    const hay = state.matchCase ? src : src.toLowerCase();
+    const needle = state.matchCase ? q : q.toLowerCase();
+    const starts = [];
+    let start = 0;
+    while (true) {
+      const idx = hay.indexOf(needle, start);
+      if (idx < 0) break;
+      if (!state.matchWholeWord || isWholeWordAt(src, idx, q.length)) {
+        starts.push(idx);
+      }
+      start = idx + needle.length;
+    }
+    return starts;
+  }
+
   function highlight(text, query, globalOffset, activeGlobal) {
     if (!query) return escapeHtml(text);
-    const q = query.toLowerCase();
     const src = String(text);
-    const lower = src.toLowerCase();
+    const starts = findMatchStarts(src, query);
+    if (!starts.length) return escapeHtml(src);
     let out = '';
     let i = 0;
-    let local = 0;
-    while (i < src.length) {
-      const idx = lower.indexOf(q, i);
-      if (idx < 0) {
-        out += escapeHtml(src.slice(i));
-        break;
-      }
+    for (let local = 0; local < starts.length; local++) {
+      const idx = starts[local];
       out += escapeHtml(src.slice(i, idx));
       const globalIndex = globalOffset + local;
       const cls = globalIndex === activeGlobal ? 'hl active' : 'hl';
       const idAttr = globalIndex === activeGlobal ? ' id="active-match"' : '';
-      out += `<mark class="${cls}"${idAttr}>${escapeHtml(src.slice(idx, idx + q.length))}</mark>`;
-      i = idx + q.length;
-      local += 1;
+      out += `<mark class="${cls}"${idAttr}>${escapeHtml(src.slice(idx, idx + query.trim().length))}</mark>`;
+      i = idx + query.trim().length;
     }
+    out += escapeHtml(src.slice(i));
     return out;
   }
 
   function countMatches(text, query) {
-    if (!query) return 0;
-    const q = query.toLowerCase();
-    const hay = String(text).toLowerCase();
-    let count = 0, start = 0;
-    while (true) {
-      const i = hay.indexOf(q, start);
-      if (i < 0) break;
-      count += 1;
-      start = i + q.length;
-    }
-    return count;
+    return findMatchStarts(text, query).length;
   }
 
   function collectMatches(record, query, tabIndexes) {
@@ -1865,8 +1881,11 @@ const _kAppJs = r'''
     $('detailSearchToggle').classList.toggle('active', state.detailSearchVisible);
     if (!state.detailSearchVisible) {
       state.detailQuery = '';
+      state.matchCase = false;
+      state.matchWholeWord = false;
       $('detailSearchInput').value = '';
       state.matchCursor = 0;
+      syncMatchFlags();
       updateMatches();
       renderDetail();
     } else {
@@ -1876,10 +1895,13 @@ const _kAppJs = r'''
   $('closeDetailSearch').onclick = () => {
     state.detailSearchVisible = false;
     state.detailQuery = '';
+    state.matchCase = false;
+    state.matchWholeWord = false;
     $('detailSearchInput').value = '';
     $('detailSearchBar').classList.add('hidden');
     $('detailSearchToggle').classList.remove('active');
     state.matchCursor = 0;
+    syncMatchFlags();
     updateMatches();
     renderDetail();
   };
@@ -1892,6 +1914,29 @@ const _kAppJs = r'''
   });
   $('prevMatch').onclick = () => goMatch(-1);
   $('nextMatch').onclick = () => goMatch(1);
+  function syncMatchFlags() {
+    $('matchCaseBtn').classList.toggle('active', !!state.matchCase);
+    $('matchCaseBtn').setAttribute('aria-pressed', state.matchCase ? 'true' : 'false');
+    $('matchWordBtn').classList.toggle('active', !!state.matchWholeWord);
+    $('matchWordBtn').setAttribute('aria-pressed', state.matchWholeWord ? 'true' : 'false');
+  }
+  $('matchCaseBtn').onclick = () => {
+    state.matchCase = !state.matchCase;
+    state.matchCursor = 0;
+    syncMatchFlags();
+    updateMatches();
+    renderDetail();
+    scrollActiveMatch();
+  };
+  $('matchWordBtn').onclick = () => {
+    state.matchWholeWord = !state.matchWholeWord;
+    state.matchCursor = 0;
+    syncMatchFlags();
+    updateMatches();
+    renderDetail();
+    scrollActiveMatch();
+  };
+  syncMatchFlags();
   $('detailScopesToggle').onclick = () => {
     state.showDetailScopes = !state.showDetailScopes;
     $('detailScopesPanel').classList.toggle('hidden', !state.showDetailScopes);
