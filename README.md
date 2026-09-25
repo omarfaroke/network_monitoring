@@ -61,7 +61,7 @@ Add the package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  network_monitoring: ^2.4.0
+  network_monitoring: ^2.5.0
   # share_plus: ^13.1.0   # if you want to use share_plus for sharing text from the monitoring UI
 ```
 
@@ -69,6 +69,42 @@ Then run:
 
 ```bash
 flutter pub get
+```
+
+---
+
+## Full vs stub entry points
+
+| Import | Use when |
+| ------ | -------- |
+| `package:network_monitoring/network_monitoring.dart` | Debugging / internal builds that need the monitor |
+| `package:network_monitoring/stub.dart` | Release / store builds that must not link monitoring code |
+
+The stub exposes the same core API names as no-ops (`initialize`, overlay wrapper, builder, `DevModeOptionsView.push`, etc.) so host call sites can stay unchanged. Import **exactly one** of these libraries in the app’s import graph — never both.
+
+Selecting which entry to compile is a **host** responsibility (flavor, env file, dart-define-driven script, etc.). A runtime `enabled: false` (or `NetworkMonitoringConfig.enableFromEnvironment`) only turns features off; it does **not** remove the full library from the binary.
+
+Example host barrel rewritten at build time:
+
+```dart
+// Monitoring enabled for this build:
+export 'package:network_monitoring/network_monitoring.dart';
+
+// Monitoring disabled for this build:
+export 'package:network_monitoring/stub.dart';
+```
+
+Optional dart-define when using the full library:
+
+```dart
+NetworkMonitoringConfig(
+  enabled: NetworkMonitoringConfig.enableFromEnvironment,
+  shareContent: (context, content) { /* ... */ },
+)
+```
+
+```bash
+flutter run --dart-define=ENABLE_NETWORK_MONITORING=true
 ```
 
 ---

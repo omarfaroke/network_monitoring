@@ -19,6 +19,24 @@ typedef OpenUrl = FutureOr<void> Function(String url);
 
 /// Configuration for the [NetworkMonitoring] package.
 class NetworkMonitoringConfig {
+  /// Compile-time flag hosts may pass as [enabled].
+  ///
+  /// Example:
+  /// ```dart
+  /// NetworkMonitoringConfig(
+  ///   enabled: NetworkMonitoringConfig.enableFromEnvironment,
+  ///   shareContent: ...,
+  /// );
+  /// ```
+  ///
+  /// This only toggles runtime behavior in the full library. To keep
+  /// monitoring code out of a release binary, import
+  /// `package:network_monitoring/stub.dart` instead of the full entry point.
+  static const bool enableFromEnvironment = bool.fromEnvironment(
+    'ENABLE_NETWORK_MONITORING',
+    defaultValue: false,
+  );
+
   /// Whether the package is active.
   ///
   /// When `false`, the Dio interceptor, dev mode unlock, overlay, and monitoring

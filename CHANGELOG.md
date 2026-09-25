@@ -2,6 +2,22 @@
 
 All notable changes to this package are documented in this file.
 
+## [2.5.0] - 2026-09-25
+
+### Added
+
+- Stub entry point `package:network_monitoring/stub.dart` for hosts that must
+  not link the monitoring implementation into release binaries
+- `NetworkMonitoringConfig.enableFromEnvironment` (`ENABLE_NETWORK_MONITORING`
+  dart-define) for runtime gating when using the full library
+
+### Notes
+
+- Import either the full library or `stub.dart`, never both, in the same app
+  import graph. Selecting the entry point is a host build concern (flavor,
+  env, or script). The stub only disables code linkage; dart-define alone does
+  not remove the full library from the binary.
+
 ## [2.4.0] - 2026-08-26
 
 ### Added

@@ -7,8 +7,12 @@
 // - [VersionTapDetector] on a version label to unlock dev mode (optional;
 //   or call `NetworkMonitoring.instance.controller.requestEnableDevMode(context)`)
 // - [NetworkMonitoringBuilder] with [NetworkMonitorChanges] for reactive UI
-// - [DevModeOptionsView] for the dev settings screen (HTTP monitor + remote monitor)//
+// - [DevModeOptionsView] for the dev settings screen (HTTP monitor + remote monitor)
+//
 // Optional: register [NetworkMonitoringLocalizations.delegate] for Arabic UI.
+//
+// For release / store builds that must not link this implementation, import
+// `package:network_monitoring/stub.dart` instead of this library.
 export 'generated/l10n/network_monitoring_localizations.dart';
 export 'src/config/network_monitoring_config.dart';
 export 'src/models/network_monitor_change.dart';
