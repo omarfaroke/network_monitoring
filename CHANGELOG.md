@@ -2,6 +2,19 @@
 
 All notable changes to this package are documented in this file.
 
+## [2.6.0] - 2026-09-25
+
+### Added
+
+- Detail find-in-page options: Match Case (`Aa`) and Match Whole Word (`ab`),
+  in-app and in the remote monitor UI
+- Whole-word matching supports Unicode letters and combining marks
+
+### Fixed
+
+- Detail search next/previous navigation scrolls to the active match without
+  hiding the request/response data block
+
 ## [2.5.0] - 2026-09-25
 
 ### Added
